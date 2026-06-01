@@ -1,5 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
  
+// ── CREDENCIALES ─────────────────────────────────────────────────
+const USUARIO = "rut";
+const CONTRASENA = "odnoliub1234";
+ 
 // ── URL DEL BACKEND (Google Apps Script) ─────────────────────────
 const API_URL = "https://script.google.com/macros/s/AKfycbwACd4P_ByyuDn99sYgmdc_DddCfOsE2TLjwQFiWgb7OMXA3l963HwCUGNGDOxzzReL/exec";
  
@@ -234,6 +238,62 @@ export default function App() {
   const ajustar = (id, delta) => { const next = inventario.map(i => i.id === id ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
  
   const mesActual = stats.porMes[filtroMes] || { ingresos: 0, count: 0, pagado: 0, pendiente: 0, gastos: 0 };
+ 
+  // ── LOGIN ──
+  const [logueado, setLogueado] = useState(() => sessionStorage.getItem("lab_auth") === "ok");
+  const [loginUser, setLoginUser] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [loginError, setLoginError] = useState("");
+ 
+  const handleLogin = () => {
+    if (loginUser === USUARIO && loginPass === CONTRASENA) {
+      sessionStorage.setItem("lab_auth", "ok");
+      setLogueado(true);
+      setLoginError("");
+    } else {
+      setLoginError("Usuario o contraseña incorrectos");
+    }
+  };
+ 
+  if (!logueado) return (
+    <div style={{ minHeight:"100vh", background:"#09090b", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}>
+      <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", padding:"40px", width:"100%", maxWidth:"360px" }}>
+        <div style={{ textAlign:"center", marginBottom:"32px" }}>
+          <div style={{ fontSize:"48px", marginBottom:"8px" }}>🦷</div>
+          <h1 style={{ color:"#fff", fontFamily:"'Syne',sans-serif", fontSize:"22px", fontWeight:800, margin:0 }}>LAB. DENTAL</h1>
+          <p style={{ color:"#52525b", fontSize:"12px", fontFamily:"monospace", marginTop:"4px" }}>Villarrica · 2026</p>
+        </div>
+        <div style={{ marginBottom:"16px" }}>
+          <label style={{ display:"block", fontSize:"11px", color:"#71717a", marginBottom:"4px", fontFamily:"monospace" }}>Usuario</label>
+          <input
+            style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"14px", boxSizing:"border-box" }}
+            value={loginUser}
+            onChange={e => setLoginUser(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            placeholder="usuario"
+          />
+        </div>
+        <div style={{ marginBottom:"24px" }}>
+          <label style={{ display:"block", fontSize:"11px", color:"#71717a", marginBottom:"4px", fontFamily:"monospace" }}>Contraseña</label>
+          <input
+            type="password"
+            style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"14px", boxSizing:"border-box" }}
+            value={loginPass}
+            onChange={e => setLoginPass(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            placeholder="contraseña"
+          />
+        </div>
+        {loginError && <p style={{ color:"#f87171", fontSize:"12px", fontFamily:"monospace", marginBottom:"16px", textAlign:"center" }}>{loginError}</p>}
+        <button
+          onClick={handleLogin}
+          style={{ background:"#22d3ee", color:"#09090b", padding:"12px", borderRadius:"7px", fontWeight:700, fontSize:"14px", cursor:"pointer", border:"none", width:"100%", fontFamily:"monospace" }}
+        >
+          Entrar
+        </button>
+      </div>
+    </div>
+  );
  
   if (!ready) return (
     <div style={{ minHeight:"100vh", background:"#09090b", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"16px" }}>
@@ -719,4 +779,3 @@ export default function App() {
     </div>
   );
 }
- 
