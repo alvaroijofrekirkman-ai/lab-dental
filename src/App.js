@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
- 
+
 // ── CREDENCIALES ─────────────────────────────────────────────────
-const USUARIO = "rut";
-const CONTRASENA = "odnoliub1234";
- 
+const USUARIOS = [
+  { usuario: "20.1821.180-0", clave: "odnoliub1234" },
+  { usuario: "15.077.122-6", clave: "marley1234" },
+];
+
 // ── URL DEL BACKEND (Google Apps Script) ─────────────────────────
 const API_URL = "https://script.google.com/macros/s/AKfycbwACd4P_ByyuDn99sYgmdc_DddCfOsE2TLjwQFiWgb7OMXA3l963HwCUGNGDOxzzReL/exec";
- 
+
 // ── API HELPERS ──────────────────────────────────────────────────
 async function cargarDatos() {
   try {
@@ -18,7 +20,7 @@ async function cargarDatos() {
   } catch (e) { console.error("Error cargando:", e); }
   return null;
 }
- 
+
 async function guardarDatos(datos) {
   try {
     await fetch(API_URL, {
@@ -27,7 +29,7 @@ async function guardarDatos(datos) {
     });
   } catch (e) { console.error("Error guardando:", e); }
 }
- 
+
 // ── DATOS INICIALES ──────────────────────────────────────────────
 const CLINICAS_INICIALES = [
   { id: 1, nombre: "MAODENTAL", localidad: "Villarrica", doctor: "Maria Jose Muñoz Ortega", telefono: "569 7979 4140", direccion: "Pedro Montt N° 774", email: "", estado: "CLIENTE" },
@@ -39,7 +41,7 @@ const CLINICAS_INICIALES = [
   { id: 7, nombre: "CLINICA KUTRALKO", localidad: "Villarrica", doctor: "Alarcon", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
   { id: 8, nombre: "CLINICA DENTALIZ", localidad: "Villarrica", doctor: "Licet Salazar", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
 ];
- 
+
 const TRABAJOS_INICIALES = [
   { id: 1, mes: "2026-03", localidad: "Villarrica", area: "Ortodoncia", clinica: "MAODENTAL", doctor: "Maria Jose Muñoz Ortega", paciente: "Antonella Martinez", tipo: "HYRAX", cantidad: 1, valor: 60000, observaciones: "No le cobramos las bandas", estado_pago: "PAGADO", nro_factura: "2", fecha_ingreso: "2026-03-06", fecha_entrega: "2026-03-08" },
   { id: 2, mes: "2026-03", localidad: "Villarrica", area: "Removible", clinica: "MAODENTAL", doctor: "Maria Jose Muñoz Ortega", paciente: "Catalina Lopez", tipo: "ESTAMPADO", cantidad: 1, valor: 35000, observaciones: "", estado_pago: "PAGADO", nro_factura: "2", fecha_ingreso: "2026-03-06", fecha_entrega: "2026-03-08" },
@@ -68,7 +70,7 @@ const TRABAJOS_INICIALES = [
   { id: 25, mes: "2026-05", localidad: "Villarrica", area: "Ortodoncia", clinica: "MAODENTAL", doctor: "Maria Jose Muñoz Ortega", paciente: "-", tipo: "HYRAX", cantidad: 1, valor: 60000, observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "2026-05-30", fecha_entrega: "" },
   { id: 26, mes: "2026-05", localidad: "Villarrica", area: "Ortodoncia", clinica: "MAODENTAL", doctor: "Maria Jose Muñoz Ortega", paciente: "-", tipo: "HYRAX", cantidad: 1, valor: 60000, observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "2026-05-30", fecha_entrega: "" },
 ];
- 
+
 const GASTOS_INICIALES = [
   { id: 1, mes: "2026-03", categoria: "Insumos", descripcion: "ALCOHOL ISOPROPILICO", medida: "LTS", cantidad: 2, valor_unit: 4500, valor_total: 9000, proveedor: "", observaciones: "" },
   { id: 2, mes: "2026-03", categoria: "Insumos", descripcion: "TORNILLO HYRAX", medida: "UN", cantidad: 3, valor_unit: 8000, valor_total: 24000, proveedor: "", observaciones: "" },
@@ -76,7 +78,7 @@ const GASTOS_INICIALES = [
   { id: 4, mes: "2026-03", categoria: "Insumos", descripcion: "TORNILLO ESQUELETICO", medida: "UN", cantidad: 1, valor_unit: 9000, valor_total: 9000, proveedor: "", observaciones: "" },
   { id: 5, mes: "2026-04", categoria: "Insumos", descripcion: "LAMINA DE ACETATO", medida: "UN", cantidad: 2, valor_unit: 3500, valor_total: 7000, proveedor: "", observaciones: "" },
 ];
- 
+
 const INVENTARIO_INICIAL = [
   { id: 1, categoria: "Ortodoncia", descripcion: "ALCOHOL ISOPROPILICO", medida: "LTS", cantidad: 2, cantidad_minima: 1, observaciones: "" },
   { id: 2, categoria: "Ortodoncia", descripcion: "TORNILLO HYRAX", medida: "UN", cantidad: 1, cantidad_minima: 3, observaciones: "" },
@@ -97,7 +99,7 @@ const INVENTARIO_INICIAL = [
   { id: 17, categoria: "Maquinaria", descripcion: "IMPRESORA 3D ELEGOO", medida: "UN", cantidad: 1, cantidad_minima: 1, observaciones: "" },
   { id: 18, categoria: "Maquinaria", descripcion: "SCANNER", medida: "UN", cantidad: 1, cantidad_minima: 1, observaciones: "" },
 ];
- 
+
 const MESES = [
   { value: "2026-01", label: "Enero 2026" }, { value: "2026-02", label: "Febrero 2026" },
   { value: "2026-03", label: "Marzo 2026" }, { value: "2026-04", label: "Abril 2026" },
@@ -110,10 +112,10 @@ const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
 const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "PENDIENTE"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
- 
+
 const fmt = (n) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
 const mesLabel = (v) => MESES.find(m => m.value === v)?.label || v;
- 
+
 const PILL = {
   "PAGADO": "bg-em-hi text-em-lo border-em-mid",
   "FACTURADO": "bg-sky-hi text-sky-lo border-sky-mid",
@@ -128,33 +130,33 @@ const PILL_CLASS = {
   "EN PROCESO": "pill-proc",
   "PENDIENTE": "pill-pend",
 };
- 
+
 const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "" };
 const emptyG = { mes: "2026-06", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
- 
+
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [ready, setReady] = useState(false);
   const [guardando, setGuardando] = useState(false);
- 
+
   const [trabajos, setTrabajos] = useState([]);
   const [clinicas, setClinicas] = useState([]);
   const [gastos, setGastos] = useState([]);
   const [inventario, setInventario] = useState([]);
   const [capitalBase, setCapitalBase] = useState(1000000);
- 
+
   const [filtroMes, setFiltroMes] = useState("2026-05");
   const [busqueda, setBusqueda] = useState("");
   const [filtroInvCat, setFiltroInvCat] = useState("Todas");
   const [editandoCapital, setEditandoCapital] = useState(false);
   const [capitalInput, setCapitalInput] = useState("1000000");
- 
+
   const [showFormT, setShowFormT] = useState(false); const [editandoT, setEditandoT] = useState(null); const [formT, setFormT] = useState(emptyT);
   const [showFormC, setShowFormC] = useState(false); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   const [showFormG, setShowFormG] = useState(false); const [editandoG, setEditandoG] = useState(null); const [formG, setFormG] = useState(emptyG);
   const [showFormI, setShowFormI] = useState(false); const [editandoI, setEditandoI] = useState(null); const [formI, setFormI] = useState(emptyI);
- 
+
   useEffect(() => {
     (async () => {
       const d = await cargarDatos();
@@ -171,13 +173,13 @@ export default function App() {
       setReady(true);
     })();
   }, []);
- 
+
   const guardarTodo = useCallback(async (t, c, g, i, cap) => {
     setGuardando(true);
     await guardarDatos({ trabajos: t, clinicas: c, gastos: g, inventario: i, capitalBase: cap !== undefined ? cap : capitalBase });
     setTimeout(() => setGuardando(false), 1200);
   }, [capitalBase]);
- 
+
   const stats = useMemo(() => {
     const porMes = {};
     MESES.forEach(m => {
@@ -193,17 +195,17 @@ export default function App() {
     });
     return { porMes, mesFiltrado: trabajos.filter(t => t.mes === filtroMes) };
   }, [trabajos, gastos, filtroMes]);
- 
+
   const trabajosFiltrados = useMemo(() => trabajos.filter(t => t.mes === filtroMes).filter(t => {
     if (!busqueda) return true;
     const q = busqueda.toLowerCase();
     return [t.clinica, t.doctor, t.paciente, t.tipo, t.estado_pago].some(v => v?.toLowerCase().includes(q));
   }), [trabajos, filtroMes, busqueda]);
- 
+
   const gastosFiltrados = useMemo(() => gastos.filter(g => g.mes === filtroMes), [gastos, filtroMes]);
   const invFiltrado = useMemo(() => inventario.filter(i => filtroInvCat === "Todas" || i.categoria === filtroInvCat), [inventario, filtroInvCat]);
   const stockBajo = useMemo(() => inventario.filter(i => i.cantidad <= i.cantidad_minima), [inventario]);
- 
+
   const saveT = () => {
     let next = editandoT !== null ? trabajos.map(t => t.id === editandoT ? { ...formT, id: editandoT } : t) : [...trabajos, { ...formT, id: Math.max(0, ...trabajos.map(x => x.id)) + 1 }];
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario);
@@ -211,13 +213,13 @@ export default function App() {
   };
   const editT = (t) => { setFormT({ ...t }); setEditandoT(t.id); setShowFormT(true); };
   const delT = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = trabajos.filter(t => t.id !== id); setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario); };
- 
+
   const saveC = () => {
     const next = [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
     setClinicas(next); guardarTodo(trabajos, next, gastos, inventario);
     setShowFormC(false); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   };
- 
+
   const saveG = () => {
     const vt = formG.valor_total || (Number(formG.cantidad) * Number(formG.valor_unit));
     const g = { ...formG, valor_total: vt };
@@ -227,7 +229,7 @@ export default function App() {
   };
   const editG = (g) => { setFormG({ ...g }); setEditandoG(g.id); setShowFormG(true); };
   const delG = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = gastos.filter(g => g.id !== id); setGastos(next); guardarTodo(trabajos, clinicas, next, inventario); };
- 
+
   const saveI = () => {
     let next = editandoI !== null ? inventario.map(x => x.id === editandoI ? { ...formI, id: editandoI } : x) : [...inventario, { ...formI, id: Math.max(0, ...inventario.map(x => x.id)) + 1 }];
     setInventario(next); guardarTodo(trabajos, clinicas, gastos, next);
@@ -236,17 +238,17 @@ export default function App() {
   const editI = (i) => { setFormI({ ...i }); setEditandoI(i.id); setShowFormI(true); };
   const delI = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = inventario.filter(i => i.id !== id); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
   const ajustar = (id, delta) => { const next = inventario.map(i => i.id === id ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
- 
+
   const mesActual = stats.porMes[filtroMes] || { ingresos: 0, count: 0, pagado: 0, pendiente: 0, gastos: 0 };
- 
+
   // ── LOGIN ──
   const [logueado, setLogueado] = useState(() => sessionStorage.getItem("lab_auth") === "ok");
   const [loginUser, setLoginUser] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [loginError, setLoginError] = useState("");
- 
+
   const handleLogin = () => {
-    if (loginUser === USUARIO && loginPass === CONTRASENA) {
+    if (USUARIOS.some(u => u.usuario === loginUser && u.clave === loginPass)) {
       sessionStorage.setItem("lab_auth", "ok");
       setLogueado(true);
       setLoginError("");
@@ -254,7 +256,7 @@ export default function App() {
       setLoginError("Usuario o contraseña incorrectos");
     }
   };
- 
+
   if (!logueado) return (
     <div style={{ minHeight:"100vh", background:"#09090b", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}>
       <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", padding:"40px", width:"100%", maxWidth:"360px" }}>
@@ -294,14 +296,14 @@ export default function App() {
       </div>
     </div>
   );
- 
+
   if (!ready) return (
     <div style={{ minHeight:"100vh", background:"#09090b", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"16px" }}>
       <div style={{ fontSize:"48px" }}>🦷</div>
       <p style={{ color:"#71717a", fontFamily:"monospace", fontSize:"14px" }}>Cargando Lab Dental...</p>
     </div>
   );
- 
+
   return (
     <div style={{ minHeight:"100vh", background:"#09090b", color:"#f4f4f5", fontFamily:"'Space Mono', monospace" }}>
       <style>{`
@@ -336,9 +338,9 @@ export default function App() {
         select.inp option { background: #27272a; }
         @media (max-width: 640px) { .hide-sm { display: none; } }
       `}</style>
- 
+
       {guardando && <div className="saving">💾 Guardando...</div>}
- 
+
       {/* HEADER */}
       <div style={{ borderBottom:"1px solid #27272a", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div>
@@ -350,16 +352,16 @@ export default function App() {
           {stockBajo.length > 0 && <p style={{ fontSize:"11px", color:"#f59e0b", fontWeight:700 }}>⚠ {stockBajo.length} stock bajo</p>}
         </div>
       </div>
- 
+
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
         {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
- 
+
       <div style={{ padding:"16px", maxWidth:"900px", margin:"0 auto" }}>
- 
+
         {/* ════ DASHBOARD ════ */}
         {tab === "dashboard" && (
           <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
@@ -369,7 +371,7 @@ export default function App() {
                 {MESES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
- 
+
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
               {[
                 { l:"Ingresos", v:fmt(mesActual.ingresos), c:"#22d3ee" },
@@ -383,7 +385,7 @@ export default function App() {
                 </div>
               ))}
             </div>
- 
+
             <div className="card" style={{ padding:"16px" }}>
               <p className="tf lbl" style={{ fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"16px" }}>Ingresos vs Gastos 2026</p>
               <div style={{ display:"flex", alignItems:"flex-end", gap:"8px", height:"110px" }}>
@@ -406,12 +408,12 @@ export default function App() {
                 <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"8px", height:"8px", borderRadius:"2px", background:"#7f1d1d" }}/><span style={{ fontSize:"11px", color:"#71717a" }}>Gastos</span></div>
               </div>
             </div>
- 
+
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
               <div className="card" style={{ padding:"16px" }}><p className="lbl">Cobrado/Facturado</p><p style={{ fontSize:"15px", fontWeight:700, color:"#4ade80" }}>{fmt(mesActual.pagado)}</p></div>
               <div className="card" style={{ padding:"16px" }}><p className="lbl">Pendiente de cobro</p><p style={{ fontSize:"15px", fontWeight:700, color:"#f59e0b" }}>{fmt(mesActual.pendiente)}</p></div>
             </div>
- 
+
             {stockBajo.length > 0 && (
               <div className="card" style={{ padding:"16px", borderColor:"#92400e" }}>
                 <p className="tf lbl" style={{ color:"#f59e0b", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"12px" }}>⚠ Stock bajo o agotado</p>
@@ -423,7 +425,7 @@ export default function App() {
                 ))}
               </div>
             )}
- 
+
             <div className="card" style={{ padding:"16px" }}>
               <p className="tf lbl" style={{ fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"12px" }}>Top clínicas · {mesLabel(filtroMes)}</p>
               {(() => {
@@ -439,7 +441,7 @@ export default function App() {
             </div>
           </div>
         )}
- 
+
         {/* ════ CAPITAL ════ */}
         {tab === "capital" && (() => {
           const cobrado = trabajos.filter(t=>["PAGADO","FACTURADO"].includes(t.estado_pago)).reduce((s,t)=>s+Number(t.valor),0);
@@ -471,7 +473,7 @@ export default function App() {
                   </div>
                 )}
               </div>
- 
+
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
                 {[
                   { l:"Capital actual (cobrado)", v:fmt(capitalActual), c:"#4ade80", sub:"Base + cobrado − gastos", bc:"#14532d" },
@@ -488,7 +490,7 @@ export default function App() {
                   </div>
                 ))}
               </div>
- 
+
               <div className="card" style={{ padding:"16px" }}>
                 <p className="tf lbl" style={{ fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"12px" }}>Ingresos cobrados por área</p>
                 {Object.entries(areaIng).sort((a,b)=>b[1]-a[1]).map(([area,val])=>(
@@ -503,7 +505,7 @@ export default function App() {
                   </div>
                 ))}
               </div>
- 
+
               <div className="card" style={{ padding:"16px" }}>
                 <p className="tf lbl" style={{ fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"12px" }}>Gastos por categoría</p>
                 {Object.entries(catGastos).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>(
@@ -522,7 +524,7 @@ export default function App() {
             </div>
           );
         })()}
- 
+
         {/* ════ TRABAJOS ════ */}
         {tab === "trabajos" && (
           <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
@@ -598,7 +600,7 @@ export default function App() {
             )}
           </div>
         )}
- 
+
         {/* ════ GASTOS ════ */}
         {tab === "gastos" && (
           <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
@@ -658,7 +660,7 @@ export default function App() {
             )}
           </div>
         )}
- 
+
         {/* ════ INVENTARIO ════ */}
         {tab === "inventario" && (
           <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
@@ -727,7 +729,7 @@ export default function App() {
             )}
           </div>
         )}
- 
+
         {/* ════ CLÍNICAS ════ */}
         {tab === "clinicas" && (
           <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
@@ -774,7 +776,7 @@ export default function App() {
             )}
           </div>
         )}
- 
+
       </div>
     </div>
   );
