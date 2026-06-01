@@ -1,7 +1,7 @@
 json{
   "name": "lab-dental",
   "version": "1.0.0",
-  "private": true,
+  "pr ivate": true,
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
