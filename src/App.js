@@ -149,6 +149,12 @@ export default function App() {
   const [filtroMes, setFiltroMes] = useState("2026-05");
   const [busqueda, setBusqueda] = useState("");
   const [filtroInvCat, setFiltroInvCat] = useState("Todas");
+  const [facturas, setFacturas] = useState([]);
+  const [showFormF, setShowFormF] = useState(false);
+  const [editandoF, setEditandoF] = useState(null);
+  const [formF, setFormF] = useState({ mes:"2026-06", tipo:"venta", nro_factura:"", fecha:"", monto:"", quien:"", estado:"PENDIENTE", link:"", observaciones:"" });
+  const [filtroFactMes, setFiltroFactMes] = useState("2026-05");
+  const [filtroFactTipo, setFiltroFactTipo] = useState("Todas");
   const [editandoCapital, setEditandoCapital] = useState(false);
   const [capitalInput, setCapitalInput] = useState("1000000");
 
@@ -166,6 +172,7 @@ export default function App() {
         setGastos(d.gastos || GASTOS_INICIALES);
         setInventario(d.inventario || INVENTARIO_INICIAL);
         if (d.capitalBase !== undefined) { setCapitalBase(d.capitalBase); setCapitalInput(String(d.capitalBase)); }
+        setFacturas(d.facturas || []);
       } else {
         setTrabajos(TRABAJOS_INICIALES); setClinicas(CLINICAS_INICIALES);
         setGastos(GASTOS_INICIALES); setInventario(INVENTARIO_INICIAL);
@@ -238,6 +245,17 @@ export default function App() {
   const editI = (i) => { setFormI({ ...i }); setEditandoI(i.id); setShowFormI(true); };
   const delI = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = inventario.filter(i => i.id !== id); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
   const ajustar = (id, delta) => { const next = inventario.map(i => i.id === id ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
+
+  // ── HANDLERS FACTURAS ──
+  const saveF = () => {
+    let next = editandoF !== null ? facturas.map(x => x.id === editandoF ? { ...formF, id: editandoF } : x) : [...facturas, { ...formF, id: Math.max(0, ...facturas.map(x => x.id), 0) + 1 }];
+    setFacturas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, next);
+    setShowFormF(false); setEditandoF(null); setFormF({ mes:"2026-06", tipo:"venta", nro_factura:"", fecha:"", monto:"", quien:"", estado:"PENDIENTE", link:"", observaciones:"" });
+  };
+  const editF = (f) => { setFormF({ ...f }); setEditandoF(f.id); setShowFormF(true); };
+  const delF = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = facturas.filter(f => f.id !== id); setFacturas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, next); };
+
+  const facturasFiltradas = facturas.filter(f => f.mes === filtroFactMes && (filtroFactTipo === "Todas" || f.tipo === filtroFactTipo));
 
   const mesActual = stats.porMes[filtroMes] || { ingresos: 0, count: 0, pagado: 0, pendiente: 0, gastos: 0 };
 
@@ -355,7 +373,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -770,6 +788,116 @@ export default function App() {
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
                     <button className="btng" onClick={()=>setShowFormC(false)}>Cancelar</button>
                     <button className="btn1" onClick={saveC}>Guardar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+
+        {/* ════ FACTURAS ════ */}
+        {tab === "facturas" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:"8px", justifyContent:"space-between", alignItems:"center" }}>
+              <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"13px" }} value={filtroFactMes} onChange={e=>setFiltroFactMes(e.target.value)}>
+                  {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+                <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"13px" }} value={filtroFactTipo} onChange={e=>setFiltroFactTipo(e.target.value)}>
+                  <option value="Todas">Todas</option>
+                  <option value="venta">Venta</option>
+                  <option value="compra">Compra</option>
+                </select>
+              </div>
+              <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>{setFormF({mes:filtroFactMes, tipo:"venta", nro_factura:"", fecha:"", monto:"", quien:"", estado:"PENDIENTE", link:"", observaciones:""});setEditandoF(null);setShowFormF(true);}}>+ Factura</button>
+            </div>
+
+            {/* Resumen */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Total ventas</p>
+                <p style={{ fontSize:"16px", fontWeight:700, color:"#4ade80" }}>{new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(facturasFiltradas.filter(f=>f.tipo==="venta").reduce((s,f)=>s+Number(f.monto||0),0))}</p>
+              </div>
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Total compras</p>
+                <p style={{ fontSize:"16px", fontWeight:700, color:"#f87171" }}>{new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(facturasFiltradas.filter(f=>f.tipo==="compra").reduce((s,f)=>s+Number(f.monto||0),0))}</p>
+              </div>
+            </div>
+
+            {/* Lista */}
+            {facturasFiltradas.length === 0 && <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#52525b", fontSize:"14px" }}>Sin facturas este mes</div>}
+            {facturasFiltradas.map(f => (
+              <div key={f.id} style={{ background:"#18181b", border:`1px solid ${f.tipo==="venta"?"#14532d":"#7f1d1d"}`, borderRadius:"10px", padding:"16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
+                      <span style={{ fontSize:"11px", background: f.tipo==="venta"?"rgba(20,83,45,0.5)":"rgba(127,29,29,0.5)", color: f.tipo==="venta"?"#4ade80":"#f87171", border:`1px solid ${f.tipo==="venta"?"#166534":"#991b1b"}`, padding:"2px 8px", borderRadius:"20px" }}>{f.tipo === "venta" ? "VENTA" : "COMPRA"}</span>
+                      <span style={{ fontSize:"11px", background:"#27272a", color:"#a1a1aa", padding:"2px 8px", borderRadius:"4px" }}>{f.estado}</span>
+                      {f.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>N° {f.nro_factura}</span>}
+                    </div>
+                    <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{f.quien || "Sin nombre"}</p>
+                    {f.fecha && <p style={{ fontSize:"12px", color:"#71717a" }}>📅 {f.fecha}</p>}
+                    {f.observaciones && <p style={{ fontSize:"11px", color:"#52525b", fontStyle:"italic", marginTop:"3px" }}>"{f.observaciones}"</p>}
+                    {f.link && <a href={f.link} target="_blank" rel="noreferrer" style={{ fontSize:"12px", color:"#22d3ee", display:"inline-block", marginTop:"4px" }}>📎 Ver factura</a>}
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
+                    <p style={{ fontWeight:700, fontSize:"16px", color: f.tipo==="venta"?"#4ade80":"#f87171" }}>{new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(f.monto||0)}</p>
+                    <div style={{ display:"flex", gap:"4px" }}>
+                      <button style={{ padding:"5px 10px", fontSize:"12px", borderRadius:"5px", cursor:"pointer", border:"1px solid #52525b", background:"transparent", color:"#a1a1aa" }} onClick={()=>editF(f)}>✏️</button>
+                      <button style={{ padding:"5px 10px", fontSize:"12px", borderRadius:"5px", cursor:"pointer", border:"1px solid #52525b", background:"transparent", color:"#f87171" }} onClick={()=>delF(f.id)}>🗑</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Modal */}
+            {showFormF && (
+              <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
+                <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"500px", maxHeight:"90vh", overflowY:"auto", padding:"24px" }}>
+                  <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>{editandoF?"Editar Factura":"Nueva Factura"}</p>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                    <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Mes</label>
+                      <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px" }} value={formF.mes} onChange={e=>setFormF(f=>({...f,mes:e.target.value}))}>
+                        {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+                      </select></div>
+                    <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Tipo</label>
+                      <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px" }} value={formF.tipo} onChange={e=>setFormF(f=>({...f,tipo:e.target.value}))}>
+                        <option value="venta">Venta</option>
+                        <option value="compra">Compra</option>
+                      </select></div>
+                  </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                    <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>N° Factura</label>
+                      <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formF.nro_factura} onChange={e=>setFormF(f=>({...f,nro_factura:e.target.value}))}/></div>
+                    <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Fecha</label>
+                      <input type="date" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formF.fecha} onChange={e=>setFormF(f=>({...f,fecha:e.target.value}))}/></div>
+                  </div>
+
+                  <div style={{ marginBottom:"12px" }}><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Clínica / Proveedor</label>
+                    <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formF.quien} onChange={e=>setFormF(f=>({...f,quien:e.target.value}))}/></div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                    <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Monto ($)</label>
+                      <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formF.monto} onChange={e=>setFormF(f=>({...f,monto:e.target.value}))}/></div>
+                    <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Estado</label>
+                      <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px" }} value={formF.estado} onChange={e=>setFormF(f=>({...f,estado:e.target.value}))}>
+                        <option>PENDIENTE</option><option>PAGADA</option><option>ANULADA</option>
+                      </select></div>
+                  </div>
+
+                  <div style={{ marginBottom:"12px" }}><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Link foto/archivo (Google Drive)</label>
+                    <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} placeholder="https://drive.google.com/..." value={formF.link} onChange={e=>setFormF(f=>({...f,link:e.target.value}))}/></div>
+
+                  <div style={{ marginBottom:"16px" }}><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Observaciones</label>
+                    <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formF.observaciones} onChange={e=>setFormF(f=>({...f,observaciones:e.target.value}))}/></div>
+
+                  <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
+                    <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>{setShowFormF(false);setEditandoF(null);}}>Cancelar</button>
+                    <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={saveF}>Guardar</button>
                   </div>
                 </div>
               </div>
