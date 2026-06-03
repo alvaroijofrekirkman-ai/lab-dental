@@ -168,6 +168,8 @@ export default function App() {
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [metaInput, setMetaInput] = useState("");
   const [editMetaForm, setEditMetaForm] = useState({ ingresos:"", trabajos:"", gastos:"" });
+  const [busqArancel, setBusqArancel] = useState("");
+  const [catSeleccionada, setCatSeleccionada] = useState("Todas");
 
 
   // Registro de actividad
@@ -1580,9 +1582,6 @@ export default function App() {
               ]
             },
           ];
-
-          const [busqArancel, setBusqArancel] = useState("");
-          const [catSeleccionada, setCatSeleccionada] = useState("Todas");
 
           const arancelFiltrado = ARANCEL.map(cat => ({
             ...cat,
