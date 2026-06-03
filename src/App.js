@@ -167,6 +167,8 @@ export default function App() {
   const [metas, setMetas] = useState({});
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [metaInput, setMetaInput] = useState("");
+  const [editMetaForm, setEditMetaForm] = useState({ ingresos:"", trabajos:"", gastos:"" });
+  const [editandoMeta, setEditandoMeta] = useState(false);
 
 
   // Registro de actividad
@@ -1214,27 +1216,24 @@ export default function App() {
           const pctTrab = metaTrabajos > 0 ? Math.min(Math.round(trabajosMes/metaTrabajos*100),100) : 0;
           const pctGas = metaGastos > 0 ? Math.min(Math.round(gastosMes/metaGastos*100),100) : 0;
 
-          const [editMeta, setEditMeta] = useState({ ingresos: String(metaIngresos||""), trabajos: String(metaTrabajos||""), gastos: String(metaGastos||"") });
-          const [editando, setEditando] = useState(false);
-
           const guardarMeta = () => {
-            const next = { ...metas, [filtroMes]: { ingresos: Number(editMeta.ingresos)||0, trabajos: Number(editMeta.trabajos)||0, gastos: Number(editMeta.gastos)||0 }};
+            const next = { ...metas, [filtroMes]: { ingresos: Number(editMetaForm.ingresos)||0, trabajos: Number(editMetaForm.trabajos)||0, gastos: Number(editMetaForm.gastos)||0 }};
             setMetas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, next);
-            setEditando(false);
+            setEditandoMeta(false);
           };
 
           const BarraMeta = ({label, actual, meta, pct, colorOk, colorMal, unidad, invertir}) => {
-            const bien = invertir ? pct <= 100 : pct >= 100;
-            const color = meta > 0 ? (bien ? colorOk : pct >= 66 ? "#f59e0b" : colorMal) : "#52525b";
+            const bien = invertir ? gastosMes <= metaGastos : pct >= 100;
+            const color = meta > 0 ? (pct >= 100 ? (invertir ? colorMal : colorOk) : pct >= 60 ? "#f59e0b" : (invertir ? colorOk : colorMal)) : "#52525b";
             return (
               <div style={{ background:"#09090b", borderRadius:"8px", padding:"14px" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"8px" }}>
                   <div>
                     <p style={{ fontSize:"12px", color:"#d4d4d8", fontWeight:600 }}>{label}</p>
-                    <p style={{ fontSize:"11px", color:"#52525b", marginTop:"2px" }}>Meta: {meta > 0 ? (unidad==="$"?fmtCLP(meta):`${meta} trabajos`) : "Sin meta"}</p>
+                    <p style={{ fontSize:"11px", color:"#52525b", marginTop:"2px" }}>Meta: {meta > 0 ? (unidad==="$" ? fmtCLP(meta) : `${meta} trabajos`) : "Sin meta definida"}</p>
                   </div>
                   <div style={{ textAlign:"right" }}>
-                    <p style={{ fontSize:"20px", fontWeight:700, color }}>{unidad==="$"?fmtCLP(actual):`${actual}`}</p>
+                    <p style={{ fontSize:"20px", fontWeight:700, color }}>{unidad==="$" ? fmtCLP(actual) : actual}</p>
                     {meta > 0 && <p style={{ fontSize:"12px", color, fontWeight:700 }}>{pct}%</p>}
                   </div>
                 </div>
@@ -1243,8 +1242,8 @@ export default function App() {
                     <div style={{ background:color, height:"8px", borderRadius:"99px", width:`${Math.min(pct,100)}%`, transition:"width 0.5s" }}/>
                   </div>
                 )}
-                {meta > 0 && bien && pct >= 100 && <p style={{ fontSize:"11px", color:colorOk, marginTop:"6px", fontWeight:700 }}>🎉 ¡Meta cumplida!</p>}
-                {meta > 0 && invertir && pct > 100 && <p style={{ fontSize:"11px", color:colorMal, marginTop:"6px", fontWeight:700 }}>⚠️ Gastos sobre el límite</p>}
+                {meta > 0 && pct >= 100 && !invertir && <p style={{ fontSize:"11px", color:"#4ade80", marginTop:"6px", fontWeight:700 }}>🎉 ¡Meta cumplida!</p>}
+                {meta > 0 && invertir && gastosMes > metaGastos && <p style={{ fontSize:"11px", color:"#f87171", marginTop:"6px", fontWeight:700 }}>⚠️ Gastos sobre el límite</p>}
               </div>
             );
           };
@@ -1259,11 +1258,11 @@ export default function App() {
                     {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
                   </select>
                 </div>
-                <button onClick={()=>{ setEditMeta({ ingresos:String(metaIngresos||""), trabajos:String(metaTrabajos||""), gastos:String(metaGastos||"") }); setEditando(true); }} style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 16px", borderRadius:"6px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }}>✏️ Editar metas</button>
+                <button onClick={()=>{ setEditMetaForm({ ingresos:String(metaIngresos||""), trabajos:String(metaTrabajos||""), gastos:String(metaGastos||"") }); setEditandoMeta(true); }} style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 16px", borderRadius:"6px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }}>✏️ Editar metas</button>
               </div>
 
               {/* Modal editar metas */}
-              {editando && (
+              {editandoMeta && (
                 <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
                   <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"380px", padding:"24px" }}>
                     <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"4px" }}>🎯 Metas · {MESES.find(m=>m.value===filtroMes)?.label}</p>
@@ -1275,11 +1274,11 @@ export default function App() {
                     ].map(([lbl, key, ph])=>(
                       <div key={key} style={{ marginBottom:"12px" }}>
                         <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>{lbl}</label>
-                        <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"14px", boxSizing:"border-box" }} placeholder={ph} value={editMeta[key]} onChange={e=>setEditMeta(f=>({...f,[key]:e.target.value}))}/>
+                        <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"14px", boxSizing:"border-box" }} placeholder={ph} value={editMetaForm[key]} onChange={e=>setEditMetaForm(f=>({...f,[key]:e.target.value}))}/>
                       </div>
                     ))}
                     <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end", marginTop:"4px" }}>
-                      <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setEditando(false)}>Cancelar</button>
+                      <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setEditandoMeta(false)}>Cancelar</button>
                       <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={guardarMeta}>Guardar</button>
                     </div>
                   </div>
@@ -1288,7 +1287,7 @@ export default function App() {
 
               {/* Barras de progreso */}
               <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
-                <BarraMeta label="💰 Ingresos" actual={ingresadoMes} meta={metaIngresos} pct={pctIng} colorOk="#4ade80" colorMal="#f87171" unidad="$" invertir={false}/>
+                <BarraMeta label="💰 Ingresos del mes" actual={ingresadoMes} meta={metaIngresos} pct={pctIng} colorOk="#4ade80" colorMal="#f87171" unidad="$" invertir={false}/>
                 <BarraMeta label="🔧 Trabajos realizados" actual={trabajosMes} meta={metaTrabajos} pct={pctTrab} colorOk="#4ade80" colorMal="#f87171" unidad="N" invertir={false}/>
                 <BarraMeta label="💸 Control de gastos" actual={gastosMes} meta={metaGastos} pct={pctGas} colorOk="#4ade80" colorMal="#f87171" unidad="$" invertir={true}/>
               </div>
@@ -1300,13 +1299,12 @@ export default function App() {
                   const mt = metas[m.value] || {};
                   const ing = (stats.porMes[m.value]||{}).ingresos||0;
                   const trab = (stats.porMes[m.value]||{}).count||0;
-                  const gas = (stats.porMes[m.value]||{}).gastos||0;
-                  const pI = mt.ingresos>0?Math.min(Math.round(ing/mt.ingresos*100),100):null;
+                  const pI = mt.ingresos>0 ? Math.min(Math.round(ing/mt.ingresos*100),100) : null;
                   return (
                     <div key={m.value} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
                       <span style={{ color:"#d4d4d8", fontSize:"13px" }}>{m.label}</span>
                       <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
-                        {pI !== null && <span style={{ color: pI>=100?"#4ade80":pI>=50?"#f59e0b":"#f87171", fontWeight:700, fontSize:"12px" }}>💰 {pI}%</span>}
+                        {pI !== null && <span style={{ color: pI>=100?"#4ade80":pI>=60?"#f59e0b":"#f87171", fontWeight:700, fontSize:"12px" }}>💰 {pI}%</span>}
                         {mt.trabajos>0 && <span style={{ color: trab>=mt.trabajos?"#4ade80":"#f59e0b", fontSize:"12px" }}>🔧 {trab}/{mt.trabajos}</span>}
                       </div>
                     </div>
