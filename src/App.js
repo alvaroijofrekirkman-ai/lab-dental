@@ -131,9 +131,63 @@ const PILL_CLASS = {
   "PENDIENTE": "pill-pend",
 };
 
-const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "" };
+const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "" };
 const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
+
+// ── ARANCEL PLANO (para autocompletar) ──────────────────────────
+const ARANCEL_PLANO = [
+  { nombre: "Placa de Expansión o Schwartz", precio: 40000, area: "Ortodoncia" },
+  { nombre: "Placa de Contención (acetato)", precio: 35000, area: "Ortodoncia" },
+  { nombre: "Disyuntor Mc.Namara (sin bandas ni ganchos)", precio: 60000, area: "Ortodoncia" },
+  { nombre: "Disyuntor Hyrax con alambre contorneado (sin bandas)", precio: 60000, area: "Ortodoncia" },
+  { nombre: "Botón de Nance (sin bandas)", precio: 40000, area: "Ortodoncia" },
+  { nombre: "Mantenedor de espacio (sin bandas)", precio: 30000, area: "Ortodoncia" },
+  { nombre: "Placa de Contención Hawley", precio: 40000, area: "Ortodoncia" },
+  { nombre: "Aparato de Mauricio (con tornillo)", precio: 46000, area: "Ortodoncia" },
+  { nombre: "Contención de Begg", precio: 46000, area: "Ortodoncia" },
+  { nombre: "Disyuntor Hass", precio: 58000, area: "Ortodoncia" },
+  { nombre: "Barra Lingual de Nance", precio: 40000, area: "Ortodoncia" },
+  { nombre: "Quad Helix", precio: 50000, area: "Ortodoncia" },
+  { nombre: "Barra Transpalatina (BTP o TPA)", precio: 38000, area: "Ortodoncia" },
+  { nombre: "Bionator 1 (estándar)", precio: 88000, area: "Ortodoncia" },
+  { nombre: "Aparato Monoblock de Mauricio", precio: 48000, area: "Ortodoncia" },
+  { nombre: "Reparación simple ortodoncia", precio: 15000, area: "Ortodoncia" },
+  { nombre: "Reparación compleja ortodoncia", precio: 20000, area: "Ortodoncia" },
+  { nombre: "Prótesis parcial", precio: 65000, area: "Removible" },
+  { nombre: "Prótesis total", precio: 65000, area: "Removible" },
+  { nombre: "Prótesis con base metálica", precio: 100000, area: "Removible" },
+  { nombre: "Prótesis inmediata", precio: 65000, area: "Removible" },
+  { nombre: "Prótesis cosmética (hasta 3 dientes)", precio: 38000, area: "Removible" },
+  { nombre: "Prótesis flexible", precio: 90000, area: "Removible" },
+  { nombre: "Rebasado total o parcial", precio: 30000, area: "Removible" },
+  { nombre: "Reparación simple prótesis", precio: 25000, area: "Removible" },
+  { nombre: "Reparación compleja prótesis", precio: 25000, area: "Removible" },
+  { nombre: "Plano de relajación acrílico", precio: 50000, area: "Plano" },
+  { nombre: "Plano Estampado", precio: 35000, area: "Plano" },
+  { nombre: "Plano relajación blando-dura", precio: 50000, area: "Plano" },
+  { nombre: "Cubetillas de blanqueamiento", precio: 24000, area: "Plano" },
+  { nombre: "Protector bucal personal simple", precio: 40000, area: "Plano" },
+  { nombre: "Protector bucal personal doble", precio: 55000, area: "Plano" },
+  { nombre: "Dientes Provisorios", precio: 15000, area: "Removible" },
+  { nombre: "Impresión 3D 1 Arcada", precio: 10000, area: "Impresión 3D" },
+  { nombre: "Impresión 3D 2 Arcadas", precio: 12000, area: "Impresión 3D" },
+  { nombre: "Plano de relajación 3D", precio: 70000, area: "Plano" },
+  { nombre: "Corona periférica (resina)", precio: 50000, area: "Fija" },
+  { nombre: "Carillas (resina)", precio: 45000, area: "Fija" },
+  { nombre: "Incrustación onlay (resina)", precio: 40000, area: "Fija" },
+  { nombre: "Incrustación inlay (resina)", precio: 33000, area: "Fija" },
+  { nombre: "Corona sobre implante (resina)", precio: 53000, area: "Fija" },
+  { nombre: "Prótesis fija plural (por pieza) Zirconio", precio: 108000, area: "Fija" },
+  { nombre: "Carillas Zirconio", precio: 100000, area: "Fija" },
+  { nombre: "Corona Zirconio", precio: 107000, area: "Fija" },
+  { nombre: "Corona sobre implante Zirconio", precio: 123000, area: "Fija" },
+  { nombre: "Núcleo Zirconio", precio: 70000, area: "Fija" },
+  { nombre: "Aplicación de cerámica para Zirconio", precio: 50000, area: "Fija" },
+  { nombre: "Corona periférica E.MAX", precio: 100000, area: "Fija" },
+  { nombre: "Carillas E.MAX", precio: 95000, area: "Fija" },
+  { nombre: "Incrustación E.MAX", precio: 94000, area: "Fija" },
+];
 
 export default function App() {
   const [tab, setTab] = useState("dashboard");
@@ -169,6 +223,7 @@ export default function App() {
   const [metaInput, setMetaInput] = useState("");
   const [editMetaForm, setEditMetaForm] = useState({ ingresos:"", trabajos:"", gastos:"" });
   const [busqArancel, setBusqArancel] = useState("");
+  const [showSugerencias, setShowSugerencias] = useState(false);
   const [catSeleccionada, setCatSeleccionada] = useState("Todas");
 
 
