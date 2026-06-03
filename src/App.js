@@ -1,4 +1,4 @@
- 
+import { useState, useMemo, useEffect, useCallback } from "react";
 
 // ── CREDENCIALES ─────────────────────────────────────────────────
 const USUARIOS = [
@@ -168,7 +168,6 @@ export default function App() {
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [metaInput, setMetaInput] = useState("");
   const [editMetaForm, setEditMetaForm] = useState({ ingresos:"", trabajos:"", gastos:"" });
-  const [editandoMeta, setEditandoMeta] = useState(false);
 
 
   // Registro de actividad
