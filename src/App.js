@@ -155,6 +155,18 @@ export default function App() {
   const [formF, setFormF] = useState({ mes:"2026-06", tipo:"venta", nro_factura:"", fecha:"", monto:"", quien:"", estado:"PENDIENTE", link:"", observaciones:"" });
   const [filtroFactMes, setFiltroFactMes] = useState("2026-05");
   const [filtroFactTipo, setFiltroFactTipo] = useState("Todas");
+
+  // Calendario
+  const [calMes, setCalMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
+  const [eventos, setEventos] = useState([]);
+  const [showFormEv, setShowFormEv] = useState(false);
+  const [formEv, setFormEv] = useState({ fecha:"", titulo:"", descripcion:"", tipo:"tarea" });
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+
+  // Metas
+  const [metas, setMetas] = useState({});
+  const [editandoMeta, setEditandoMeta] = useState(false);
+  const [metaInput, setMetaInput] = useState("");
   const [editandoCapital, setEditandoCapital] = useState(false);
   const [capitalInput, setCapitalInput] = useState("1000000");
 
@@ -173,6 +185,8 @@ export default function App() {
         setInventario(d.inventario || INVENTARIO_INICIAL);
         if (d.capitalBase !== undefined) { setCapitalBase(d.capitalBase); setCapitalInput(String(d.capitalBase)); }
         setFacturas(d.facturas || []);
+        setEventos(d.eventos || []);
+        setMetas(d.metas || {});
       } else {
         setTrabajos(TRABAJOS_INICIALES); setClinicas(CLINICAS_INICIALES);
         setGastos(GASTOS_INICIALES); setInventario(INVENTARIO_INICIAL);
@@ -181,7 +195,7 @@ export default function App() {
     })();
   }, []);
 
-  const guardarTodo = useCallback(async (t, c, g, i, cap, f) => {
+  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt) => {
     setGuardando(true);
     await guardarDatos({ 
       trabajos: t, 
@@ -189,10 +203,12 @@ export default function App() {
       gastos: g, 
       inventario: i, 
       capitalBase: cap !== undefined ? cap : capitalBase,
-      facturas: f !== undefined ? f : facturas
+      facturas: f !== undefined ? f : facturas,
+      eventos: ev !== undefined ? ev : eventos,
+      metas: mt !== undefined ? mt : metas,
     });
     setTimeout(() => setGuardando(false), 1200);
-  }, [capitalBase, facturas]);
+  }, [capitalBase, facturas, eventos, metas]);
 
   const stats = useMemo(() => {
     const porMes = {};
@@ -263,6 +279,39 @@ export default function App() {
   const delF = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = facturas.filter(f => f.id !== id); setFacturas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, next); };
 
   const facturasFiltradas = facturas.filter(f => f.mes === filtroFactMes && (filtroFactTipo === "Todas" || f.tipo === filtroFactTipo));
+
+  // ── HANDLERS EVENTOS ──
+  const saveEv = (fecha) => {
+    if (!formEv.titulo) return;
+    const newEv = { ...formEv, fecha: fecha || formEv.fecha, id: Math.max(0, ...eventos.map(x=>x.id), 0)+1 };
+    const next = [...eventos, newEv];
+    setEventos(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas);
+    setShowFormEv(false); setFormEv({ fecha:"", titulo:"", descripcion:"", tipo:"tarea" });
+  };
+  const delEv = (id) => { const next = eventos.filter(e=>e.id!==id); setEventos(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas); };
+
+  // Trabajos en calendario con +4 días
+  const addDias = (fechaStr, dias) => {
+    if (!fechaStr) return null;
+    const d = new Date(fechaStr + "T12:00:00");
+    d.setDate(d.getDate() + dias);
+    return d.toISOString().split("T")[0];
+  };
+
+  const eventosDelDia = (fecha) => {
+    const evManuales = eventos.filter(e => e.fecha === fecha);
+    const evTrabajos = trabajos
+      .filter(t => { const fe = addDias(t.fecha_ingreso, 4); return fe === fecha; })
+      .map(t => ({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica} · ${t.paciente||""}`, tipo:"trabajo", fecha }));
+    return [...evManuales, ...evTrabajos];
+  };
+
+  // ── HANDLERS METAS ──
+  const saveMeta = () => {
+    const next = { ...metas, [filtroMes]: Number(metaInput)||0 };
+    setMetas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, next);
+    setEditandoMeta(false);
+  };
 
   const mesActual = stats.porMes[filtroMes] || { ingresos: 0, count: 0, pagado: 0, pendiente: 0, gastos: 0 };
 
@@ -380,7 +429,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -911,6 +960,181 @@ export default function App() {
             )}
           </div>
         )}
+
+        {/* ════ CALENDARIO ════ */}
+        {tab === "calendario" && (() => {
+          const [anio, mes] = calMes.split("-").map(Number);
+          const primerDia = new Date(anio, mes-1, 1).getDay();
+          const diasEnMes = new Date(anio, mes, 0).getDate();
+          const hoy = new Date().toISOString().split("T")[0];
+          const dias = [];
+          for (let i=0; i<primerDia; i++) dias.push(null);
+          for (let d=1; d<=diasEnMes; d++) dias.push(d);
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              {/* Nav mes */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"16px" }} onClick={()=>{ const d=new Date(anio,mes-2,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); }}>‹</button>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"16px" }}>{MESES.find(m=>m.value===calMes)?.label || calMes}</p>
+                <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"16px" }} onClick={()=>{ const d=new Date(anio,mes,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); }}>›</button>
+              </div>
+
+              {/* Grid días semana */}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"4px" }}>
+                {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=>(
+                  <div key={d} style={{ textAlign:"center", fontSize:"11px", color:"#52525b", padding:"4px", fontWeight:700 }}>{d}</div>
+                ))}
+                {dias.map((d, i) => {
+                  if (!d) return <div key={`e${i}`}/>;
+                  const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                  const evs = eventosDelDia(fecha);
+                  const esHoy = fecha === hoy;
+                  const seleccionado = diaSeleccionado === fecha;
+                  return (
+                    <div key={d} onClick={()=>setDiaSeleccionado(seleccionado?null:fecha)} style={{ background: seleccionado?"#1e3a5f": esHoy?"#1c2420":"#18181b", border:`1px solid ${seleccionado?"#3b82f6":esHoy?"#22c55e":"#3f3f46"}`, borderRadius:"6px", padding:"6px 4px", cursor:"pointer", minHeight:"52px" }}>
+                      <p style={{ fontSize:"12px", fontWeight: esHoy?700:400, color: esHoy?"#4ade80":"#d4d4d8", marginBottom:"3px", textAlign:"center" }}>{d}</p>
+                      {evs.slice(0,2).map((ev,idx)=>(
+                        <div key={idx} style={{ fontSize:"9px", background: ev.tipo==="trabajo"?"#164e63": ev.tipo==="reunion"?"#4a1d96":"#14532d", color:"#e2e8f0", borderRadius:"3px", padding:"1px 4px", marginBottom:"2px", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>{ev.titulo}</div>
+                      ))}
+                      {evs.length>2 && <div style={{ fontSize:"9px", color:"#52525b" }}>+{evs.length-2} más</div>}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Detalle día seleccionado */}
+              {diaSeleccionado && (
+                <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"14px" }}>📅 {diaSeleccionado}</p>
+                    <button style={{ background:"#22d3ee", color:"#09090b", padding:"6px 14px", borderRadius:"6px", fontWeight:700, fontSize:"12px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>{ setFormEv({fecha:diaSeleccionado, titulo:"", descripcion:"", tipo:"tarea"}); setShowFormEv(true); }}>+ Evento</button>
+                  </div>
+                  {eventosDelDia(diaSeleccionado).length === 0 && <p style={{ color:"#52525b", fontSize:"13px" }}>Sin eventos este día</p>}
+                  {eventosDelDia(diaSeleccionado).map((ev,idx) => (
+                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
+                      <div>
+                        <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{ev.titulo}</p>
+                        {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>}
+                        <span style={{ fontSize:"10px", background: ev.tipo==="trabajo"?"#164e63": ev.tipo==="reunion"?"#4a1d96":"#14532d", color:"#e2e8f0", padding:"2px 6px", borderRadius:"3px" }}>{ev.tipo}</span>
+                      </div>
+                      {ev.tipo !== "trabajo" && <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"16px" }} onClick={()=>delEv(ev.id)}>🗑</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Modal nuevo evento */}
+              {showFormEv && (
+                <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
+                  <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"400px", padding:"24px" }}>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>Nuevo Evento · {formEv.fecha}</p>
+                    <div style={{ marginBottom:"12px" }}>
+                      <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Tipo</label>
+                      <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px" }} value={formEv.tipo} onChange={e=>setFormEv(f=>({...f,tipo:e.target.value}))}>
+                        <option value="tarea">Tarea</option>
+                        <option value="reunion">Reunión</option>
+                        <option value="recordatorio">Recordatorio</option>
+                        <option value="pago">Pago</option>
+                      </select>
+                    </div>
+                    <div style={{ marginBottom:"12px" }}>
+                      <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Título</label>
+                      <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formEv.titulo} onChange={e=>setFormEv(f=>({...f,titulo:e.target.value}))} placeholder="Ej: Reunión con MAODENTAL"/>
+                    </div>
+                    <div style={{ marginBottom:"16px" }}>
+                      <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Descripción (opcional)</label>
+                      <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formEv.descripcion} onChange={e=>setFormEv(f=>({...f,descripcion:e.target.value}))}/>
+                    </div>
+                    <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
+                      <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setShowFormEv(false)}>Cancelar</button>
+                      <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>saveEv(formEv.fecha)}>Guardar</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ════ METAS ════ */}
+        {tab === "metas" && (() => {
+          const metaMes = metas[filtroMes] || 0;
+          const ingresadoMes = mesActual.ingresos || 0;
+          const pct = metaMes > 0 ? Math.min(Math.round(ingresadoMes/metaMes*100),100) : 0;
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              {/* Selector mes */}
+              <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                <label style={{ fontSize:"11px", color:"#71717a" }}>Mes:</label>
+                <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"13px" }} value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}>
+                  {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+
+              {/* Meta card */}
+              <div style={{ background:"#18181b", border:"1px solid #854d0e", borderRadius:"10px", padding:"20px", background:"#1c1408" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#f59e0b", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"8px" }}>🎯 Meta de ingresos · {MESES.find(m=>m.value===filtroMes)?.label}</p>
+                {editandoMeta ? (
+                  <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
+                    <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"16px", width:"180px" }} value={metaInput} onChange={e=>setMetaInput(e.target.value)} autoFocus/>
+                    <button style={{ background:"#22d3ee", color:"#09090b", padding:"8px 18px", borderRadius:"6px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={saveMeta}>Guardar</button>
+                    <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"8px 18px", borderRadius:"6px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setEditandoMeta(false)}>✕</button>
+                  </div>
+                ) : (
+                  <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                    <p style={{ fontSize:"28px", fontWeight:700, color:"#fbbf24" }}>{metaMes>0?fmtCLP(metaMes):"Sin meta"}</p>
+                    <button style={{ padding:"5px 10px", fontSize:"12px", borderRadius:"5px", cursor:"pointer", border:"1px solid #52525b", background:"transparent", color:"#a1a1aa", fontFamily:"monospace" }} onClick={()=>{ setMetaInput(String(metaMes)); setEditandoMeta(true); }}>✏️ Editar</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Progreso */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"20px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
+                  <p style={{ color:"#d4d4d8", fontSize:"13px" }}>Progreso</p>
+                  <p style={{ color: pct>=100?"#4ade80":pct>=50?"#f59e0b":"#f87171", fontWeight:700, fontSize:"13px" }}>{pct}%</p>
+                </div>
+                <div style={{ background:"#27272a", borderRadius:"99px", height:"12px", overflow:"hidden" }}>
+                  <div style={{ background: pct>=100?"#22c55e":pct>=50?"#f59e0b":"#ef4444", height:"12px", borderRadius:"99px", width:`${pct}%`, transition:"width 0.5s" }}/>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginTop:"16px" }}>
+                  <div style={{ background:"#09090b", borderRadius:"8px", padding:"12px" }}>
+                    <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Ingresado</p>
+                    <p style={{ fontSize:"16px", fontWeight:700, color:"#22d3ee" }}>{fmtCLP(ingresadoMes)}</p>
+                  </div>
+                  <div style={{ background:"#09090b", borderRadius:"8px", padding:"12px" }}>
+                    <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Falta</p>
+                    <p style={{ fontSize:"16px", fontWeight:700, color: metaMes-ingresadoMes<=0?"#4ade80":"#f87171" }}>{fmtCLP(Math.max(0,metaMes-ingresadoMes))}</p>
+                  </div>
+                </div>
+                {pct>=100 && <div style={{ marginTop:"12px", background:"rgba(34,197,94,0.1)", border:"1px solid #166534", borderRadius:"8px", padding:"12px", textAlign:"center" }}><p style={{ color:"#4ade80", fontWeight:700, fontSize:"14px" }}>🎉 ¡Meta cumplida!</p></div>}
+              </div>
+
+              {/* Historial metas */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>Historial de metas 2026</p>
+                {MESES.filter(m=>metas[m.value]).map(m => {
+                  const meta = metas[m.value] || 0;
+                  const ing = (stats.porMes[m.value]||{}).ingresos||0;
+                  const p = meta>0?Math.min(Math.round(ing/meta*100),100):0;
+                  return (
+                    <div key={m.value} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
+                      <span style={{ color:"#d4d4d8", fontSize:"13px" }}>{m.label}</span>
+                      <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
+                        <span style={{ color:"#52525b", fontSize:"12px" }}>{fmtCLP(ing)} / {fmtCLP(meta)}</span>
+                        <span style={{ color: p>=100?"#4ade80":p>=50?"#f59e0b":"#f87171", fontWeight:700, fontSize:"12px" }}>{p}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {Object.keys(metas).length===0 && <p style={{ color:"#52525b", fontSize:"13px" }}>Sin metas registradas aún</p>}
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     </div>
