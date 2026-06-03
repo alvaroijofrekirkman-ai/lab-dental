@@ -146,14 +146,14 @@ export default function App() {
   const [inventario, setInventario] = useState([]);
   const [capitalBase, setCapitalBase] = useState(1000000);
 
-  const [filtroMes, setFiltroMes] = useState("2026-05");
+  const [filtroMes, setFiltroMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
   const [busqueda, setBusqueda] = useState("");
   const [filtroInvCat, setFiltroInvCat] = useState("Todas");
   const [facturas, setFacturas] = useState([]);
   const [showFormF, setShowFormF] = useState(false);
   const [editandoF, setEditandoF] = useState(null);
   const [formF, setFormF] = useState({ mes:"2026-06", tipo:"venta", nro_factura:"", fecha:"", monto:"", quien:"", estado:"PENDIENTE", link:"", observaciones:"" });
-  const [filtroFactMes, setFiltroFactMes] = useState("2026-05");
+  const [filtroFactMes, setFiltroFactMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
   const [filtroFactTipo, setFiltroFactTipo] = useState("Todas");
 
   // Calendario
