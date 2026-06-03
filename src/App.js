@@ -1299,35 +1299,81 @@ export default function App() {
         {/* ════ DEUDAS ════ */}
         {tab === "deudas" && (() => {
           const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+          
+          // Trabajos FACTURADOS agrupados por clínica (deudas automáticas)
+          const facturadosPorClinica = {};
+          trabajos.filter(t => t.estado_pago === "FACTURADO").forEach(t => {
+            if (!facturadosPorClinica[t.clinica]) facturadosPorClinica[t.clinica] = { trabajos:[], total:0 };
+            facturadosPorClinica[t.clinica].trabajos.push(t);
+            facturadosPorClinica[t.clinica].total += Number(t.valor);
+          });
+          const totalFacturado = Object.values(facturadosPorClinica).reduce((s,c)=>s+c.total,0);
+
           const deudaPendiente = deudas.filter(d=>d.estado==="PENDIENTE").reduce((s,d)=>s+Number(d.monto||0),0);
           const deudaCobrada = deudas.filter(d=>d.estado==="COBRADA").reduce((s,d)=>s+Number(d.monto||0),0);
+
           return (
             <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <p style={{ fontSize:"13px", color:"#71717a" }}>{deudas.filter(d=>d.estado==="PENDIENTE").length} deudas pendientes</p>
-                <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>setShowFormD(true)}>+ Deuda</button>
+                <p style={{ fontSize:"13px", color:"#71717a" }}>{deudas.filter(d=>d.estado==="PENDIENTE").length + Object.keys(facturadosPorClinica).length} deudas pendientes</p>
+                <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>setShowFormD(true)}>+ Deuda manual</button>
               </div>
 
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-                <div style={{ background:"#18181b", border:"1px solid #7f1d1d", borderRadius:"10px", padding:"16px" }}>
-                  <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Por cobrar</p>
-                  <p style={{ fontSize:"18px", fontWeight:700, color:"#f87171" }}>{fmtCLP(deudaPendiente)}</p>
+              {/* KPIs */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+                <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"10px", padding:"14px" }}>
+                  <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"4px" }}>Trabajos facturados</p>
+                  <p style={{ fontSize:"16px", fontWeight:700, color:"#fb923c" }}>{fmtCLP(totalFacturado)}</p>
                 </div>
-                <div style={{ background:"#18181b", border:"1px solid #14532d", borderRadius:"10px", padding:"16px" }}>
-                  <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Cobradas</p>
-                  <p style={{ fontSize:"18px", fontWeight:700, color:"#4ade80" }}>{fmtCLP(deudaCobrada)}</p>
+                <div style={{ background:"#18181b", border:"1px solid #7f1d1d", borderRadius:"10px", padding:"14px" }}>
+                  <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"4px" }}>Deudas manuales</p>
+                  <p style={{ fontSize:"16px", fontWeight:700, color:"#f87171" }}>{fmtCLP(deudaPendiente)}</p>
+                </div>
+                <div style={{ background:"#18181b", border:"1px solid #14532d", borderRadius:"10px", padding:"14px" }}>
+                  <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"4px" }}>Cobradas</p>
+                  <p style={{ fontSize:"16px", fontWeight:700, color:"#4ade80" }}>{fmtCLP(deudaCobrada)}</p>
                 </div>
               </div>
 
-              {deudas.length===0 && <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#52525b" }}>Sin deudas registradas</div>}
+              {/* TRABAJOS FACTURADOS AUTOMÁTICOS */}
+              {Object.keys(facturadosPorClinica).length > 0 && (
+                <div>
+                  <p style={{ fontSize:"11px", color:"#fb923c", fontWeight:700, marginBottom:"8px", textTransform:"uppercase", letterSpacing:"1px" }}>🧾 Trabajos facturados sin cobrar</p>
+                  {Object.entries(facturadosPorClinica).map(([clinica, data]) => (
+                    <div key={clinica} style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"10px", padding:"16px", marginBottom:"8px" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap", marginBottom:"8px" }}>
+                        <div>
+                          <p style={{ fontWeight:700, color:"#fff", fontSize:"14px" }}>{clinica}</p>
+                          <p style={{ fontSize:"12px", color:"#71717a" }}>{data.trabajos.length} trabajo{data.trabajos.length>1?"s":""} facturado{data.trabajos.length>1?"s":""}</p>
+                        </div>
+                        <p style={{ fontWeight:700, fontSize:"18px", color:"#fb923c" }}>{fmtCLP(data.total)}</p>
+                      </div>
+                      {data.trabajos.map(t => (
+                        <div key={t.id} style={{ display:"flex", justifyContent:"space-between", padding:"6px 8px", background:"#09090b", borderRadius:"6px", marginBottom:"4px", fontSize:"12px" }}>
+                          <span style={{ color:"#d4d4d8" }}>🦷 {t.tipo} {t.paciente&&t.paciente!=="-"?`· ${t.paciente}`:""}</span>
+                          <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+                            <span style={{ color:"#71717a" }}>{t.mes}</span>
+                            <span style={{ color:"#fb923c", fontWeight:700 }}>{fmtCLP(t.valor)}</span>
+                          </div>
+                        </div>
+                      ))}
+                      <p style={{ fontSize:"10px", color:"#52525b", marginTop:"6px" }}>💡 Cambia el estado a "PAGADO" en Trabajos cuando cobres</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* DEUDAS MANUALES */}
+              {deudas.length===0 && Object.keys(facturadosPorClinica).length===0 && (
+                <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#52525b" }}>Sin deudas registradas</div>
+              )}
               
-              {/* Pendientes primero */}
               {["PENDIENTE","COBRADA"].map(estado => {
                 const lista = deudas.filter(d=>d.estado===estado);
                 if (lista.length===0) return null;
                 return (
                   <div key={estado}>
-                    <p style={{ fontSize:"11px", color: estado==="PENDIENTE"?"#f87171":"#4ade80", fontWeight:700, marginBottom:"8px", textTransform:"uppercase", letterSpacing:"1px" }}>{estado==="PENDIENTE"?"⏳ Pendientes":"✅ Cobradas"}</p>
+                    <p style={{ fontSize:"11px", color: estado==="PENDIENTE"?"#f87171":"#4ade80", fontWeight:700, marginBottom:"8px", textTransform:"uppercase", letterSpacing:"1px" }}>{estado==="PENDIENTE"?"⏳ Deudas manuales pendientes":"✅ Cobradas"}</p>
                     {lista.map(d => (
                       <div key={d.id} style={{ background:"#18181b", border:`1px solid ${d.estado==="PENDIENTE"?"#7f1d1d":"#14532d"}`, borderRadius:"10px", padding:"16px", marginBottom:"8px" }}>
                         <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
