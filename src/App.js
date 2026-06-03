@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 
 // ── CREDENCIALES ─────────────────────────────────────────────────
 const USUARIOS = [
-  { usuario: "20.182.180-0", clave: "odnoliub1234" },
+  { usuario: "20.1821.180-0", clave: "odnoliub1234" },
   { usuario: "15.077.122-6", clave: "marley1234" },
 ];
 
@@ -168,9 +168,6 @@ export default function App() {
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [metaInput, setMetaInput] = useState("");
 
-  // Notas
-  const [notas, setNotas] = useState([]);
-  const [notaInput, setNotaInput] = useState("");
 
   // Registro de actividad
   const [actividad, setActividad] = useState([]);
@@ -200,7 +197,6 @@ export default function App() {
         setFacturas(d.facturas || []);
         setEventos(d.eventos || []);
         setMetas(d.metas || {});
-        setNotas(d.notas || []);
         setDeudas(d.deudas || []);
         setActividad(d.actividad || []);
       } else {
@@ -222,7 +218,7 @@ export default function App() {
     return [...(act || actividad).slice(-99), registro];
   };
 
-  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt, nt, deu, act) => {
+  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt, deu, act) => {
     setGuardando(true);
     await guardarDatos({ 
       trabajos: t, 
@@ -233,12 +229,11 @@ export default function App() {
       facturas: f !== undefined ? f : facturas,
       eventos: ev !== undefined ? ev : eventos,
       metas: mt !== undefined ? mt : metas,
-      notas: nt !== undefined ? nt : notas,
       deudas: deu !== undefined ? deu : deudas,
       actividad: act !== undefined ? act : actividad,
     });
     setTimeout(() => setGuardando(false), 1200);
-  }, [capitalBase, facturas, eventos, metas, notas, deudas, actividad]);
+  }, [capitalBase, facturas, eventos, metas, deudas, actividad]);
 
   const stats = useMemo(() => {
     const porMes = {};
@@ -349,23 +344,16 @@ export default function App() {
     setEditandoMeta(false);
   };
 
-  // ── HANDLERS NOTAS ──
-  const addNota = () => {
-    if (!notaInput.trim()) return;
-    const next = [...notas, { id: Math.max(0,...notas.map(x=>x.id),0)+1, texto: notaInput, fecha: new Date().toLocaleDateString("es-CL"), autor: "" }];
-    setNotas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next, deudas);
-    setNotaInput("");
-  };
-  const delNota = (id) => { const next = notas.filter(n=>n.id!==id); setNotas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next, deudas); };
+
 
   // ── HANDLERS DEUDAS ──
   const saveD = () => {
     const next = [...deudas, { ...formD, id: Math.max(0,...deudas.map(x=>x.id),0)+1 }];
-    setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, notas, next);
+    setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next);
     setShowFormD(false); setFormD({ clinica:"", monto:"", desde:"", descripcion:"", estado:"PENDIENTE" });
   };
-  const delD = (id) => { const next = deudas.filter(d=>d.id!==id); setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, notas, next); };
-  const toggleDeuda = (id) => { const next = deudas.map(d=>d.id===id?{...d,estado:d.estado==="PENDIENTE"?"COBRADA":"PENDIENTE"}:d); setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, notas, next); };
+  const delD = (id) => { const next = deudas.filter(d=>d.id!==id); setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next); };
+  const toggleDeuda = (id) => { const next = deudas.map(d=>d.id===id?{...d,estado:d.estado==="PENDIENTE"?"COBRADA":"PENDIENTE"}:d); setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next); };
 
   const mesActual = stats.porMes[filtroMes] || { ingresos: 0, count: 0, pagado: 0, pendiente: 0, gastos: 0 };
 
@@ -485,7 +473,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["notas","💬 Notas"],["informe","📄 Informe"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["informe","📄 Informe"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1026,65 +1014,151 @@ export default function App() {
           const primerDia = new Date(anio, mes-1, 1).getDay();
           const diasEnMes = new Date(anio, mes, 0).getDate();
           const hoy = new Date().toISOString().split("T")[0];
+
           const dias = [];
           for (let i=0; i<primerDia; i++) dias.push(null);
           for (let d=1; d<=diasEnMes; d++) dias.push(d);
 
+          const TIPO_COLOR = {
+            trabajo: { pending:"#7c2d12", done:"#14532d", pendingText:"#fb923c", doneText:"#4ade80" },
+            tarea:   { bg:"#1e3a5f", text:"#93c5fd" },
+            reunion: { bg:"#4c1d95", text:"#c4b5fd" },
+            recordatorio: { bg:"#713f12", text:"#fcd34d" },
+            pago:    { bg:"#064e3b", text:"#6ee7b7" },
+          };
+
+          // Todos los eventos de este mes para lista lateral
+          const todosEvsMes = [];
+          for (let d=1; d<=diasEnMes; d++) {
+            const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+            eventosDelDia(fecha).forEach(ev => todosEvsMes.push({ ...ev, fecha }));
+          }
+          const trabajosMesCal = todosEvsMes.filter(e=>e.tipo==="trabajo");
+          const eventosManualesMes = todosEvsMes.filter(e=>e.tipo!=="trabajo");
+
           return (
             <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
-              {/* Nav mes */}
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"16px" }} onClick={()=>{ const d=new Date(anio,mes-2,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); }}>‹</button>
-                <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"16px" }}>{MESES.find(m=>m.value===calMes)?.label || calMes}</p>
-                <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"16px" }} onClick={()=>{ const d=new Date(anio,mes,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); }}>›</button>
+
+              {/* Stats del mes */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+                <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
+                  <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Entregas pendientes</p>
+                  <p style={{ fontSize:"22px", fontWeight:700, color:"#fb923c" }}>{trabajosMesCal.filter(e=>!e.entregado).length}</p>
+                </div>
+                <div style={{ background:"#18181b", border:"1px solid #14532d", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
+                  <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Entregados</p>
+                  <p style={{ fontSize:"22px", fontWeight:700, color:"#4ade80" }}>{trabajosMesCal.filter(e=>e.entregado).length}</p>
+                </div>
+                <div style={{ background:"#18181b", border:"1px solid #1e3a5f", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
+                  <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Eventos</p>
+                  <p style={{ fontSize:"22px", fontWeight:700, color:"#93c5fd" }}>{eventosManualesMes.length}</p>
+                </div>
               </div>
 
-              {/* Grid días semana */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"4px" }}>
-                {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=>(
-                  <div key={d} style={{ textAlign:"center", fontSize:"11px", color:"#52525b", padding:"4px", fontWeight:700 }}>{d}</div>
+              {/* Nav mes */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#18181b", border:"1px solid #3f3f46", borderRadius:"8px", padding:"10px 16px" }}>
+                <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"18px", lineHeight:1 }} onClick={()=>{ const d=new Date(anio,mes-2,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); setDiaSeleccionado(null); }}>‹</button>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"16px" }}>{MESES.find(m=>m.value===calMes)?.label || calMes}</p>
+                <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"18px", lineHeight:1 }} onClick={()=>{ const d=new Date(anio,mes,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); setDiaSeleccionado(null); }}>›</button>
+              </div>
+
+              {/* Grid calendario */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"12px" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"3px", marginBottom:"6px" }}>
+                  {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=>(
+                    <div key={d} style={{ textAlign:"center", fontSize:"10px", color:"#52525b", padding:"4px", fontWeight:700 }}>{d}</div>
+                  ))}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"3px" }}>
+                  {dias.map((d, i) => {
+                    if (!d) return <div key={`e${i}`} style={{ minHeight:"52px" }}/>;
+                    const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                    const evs = eventosDelDia(fecha);
+                    const esHoy = fecha === hoy;
+                    const seleccionado = diaSeleccionado === fecha;
+                    const tienePendiente = evs.some(e=>e.tipo==="trabajo"&&!e.entregado);
+                    const tieneEntregado = evs.some(e=>e.tipo==="trabajo"&&e.entregado);
+                    const tieneEvento = evs.some(e=>e.tipo!=="trabajo");
+                    return (
+                      <div key={d} onClick={()=>setDiaSeleccionado(seleccionado?null:fecha)}
+                        style={{ background: seleccionado?"#1e3a5f": esHoy?"#0c1a0f":"#09090b", border:`1px solid ${seleccionado?"#3b82f6":esHoy?"#22c55e":"#27272a"}`, borderRadius:"6px", padding:"5px 4px", cursor:"pointer", minHeight:"52px", position:"relative" }}>
+                        <p style={{ fontSize:"11px", fontWeight: esHoy?700:400, color: esHoy?"#4ade80":"#d4d4d8", textAlign:"center", marginBottom:"3px" }}>{d}</p>
+                        <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+                          {tienePendiente && <div style={{ fontSize:"8px", background:"#7c2d12", color:"#fb923c", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>⏳ Entrega</div>}
+                          {tieneEntregado && <div style={{ fontSize:"8px", background:"#14532d", color:"#4ade80", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>✅ Listo</div>}
+                          {tieneEvento && <div style={{ fontSize:"8px", background:"#1e3a5f", color:"#93c5fd", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>📌 {evs.filter(e=>e.tipo!=="trabajo").length}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Leyenda */}
+              <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
+                {[["⏳","#7c2d12","#fb923c","Entrega pendiente"],["✅","#14532d","#4ade80","Entregado"],["📌","#1e3a5f","#93c5fd","Evento manual"]].map(([ico,bg,col,lbl])=>(
+                  <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                    <div style={{ fontSize:"10px", background:bg, color:col, padding:"2px 6px", borderRadius:"3px" }}>{ico}</div>
+                    <span style={{ fontSize:"11px", color:"#71717a" }}>{lbl}</span>
+                  </div>
                 ))}
-                {dias.map((d, i) => {
-                  if (!d) return <div key={`e${i}`}/>;
-                  const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                  const evs = eventosDelDia(fecha);
-                  const esHoy = fecha === hoy;
-                  const seleccionado = diaSeleccionado === fecha;
-                  return (
-                    <div key={d} onClick={()=>setDiaSeleccionado(seleccionado?null:fecha)} style={{ background: seleccionado?"#1e3a5f": esHoy?"#1c2420":"#18181b", border:`1px solid ${seleccionado?"#3b82f6":esHoy?"#22c55e":"#3f3f46"}`, borderRadius:"6px", padding:"6px 4px", cursor:"pointer", minHeight:"52px" }}>
-                      <p style={{ fontSize:"12px", fontWeight: esHoy?700:400, color: esHoy?"#4ade80":"#d4d4d8", marginBottom:"3px", textAlign:"center" }}>{d}</p>
-                      {evs.slice(0,2).map((ev,idx)=>(
-                        <div key={idx} style={{ fontSize:"9px", background: ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"): ev.tipo==="reunion"?"#4a1d96":"#166534", color:"#e2e8f0", borderRadius:"3px", padding:"1px 4px", marginBottom:"2px", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>{ev.titulo}</div>
-                      ))}
-                      {evs.length>2 && <div style={{ fontSize:"9px", color:"#52525b" }}>+{evs.length-2} más</div>}
-                    </div>
-                  );
-                })}
               </div>
 
               {/* Detalle día seleccionado */}
               {diaSeleccionado && (
                 <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
-                    <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"14px" }}>📅 {diaSeleccionado}</p>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"14px" }}>
+                      📅 {new Date(diaSeleccionado+"T12:00:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"})}
+                    </p>
                     <button style={{ background:"#22d3ee", color:"#09090b", padding:"6px 14px", borderRadius:"6px", fontWeight:700, fontSize:"12px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>{ setFormEv({fecha:diaSeleccionado, titulo:"", descripcion:"", tipo:"tarea"}); setShowFormEv(true); }}>+ Evento</button>
                   </div>
                   {eventosDelDia(diaSeleccionado).length === 0 && <p style={{ color:"#52525b", fontSize:"13px" }}>Sin eventos este día</p>}
                   {eventosDelDia(diaSeleccionado).map((ev,idx) => (
-                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"10px 0", borderBottom:"1px solid #27272a" }}>
-                      <div style={{ flex:1 }}>
-                        <p style={{ color:"#fff", fontSize:"13px", fontWeight:600, marginBottom:"3px" }}>{ev.titulo}</p>
-                        {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px", marginBottom:"4px" }}>{ev.descripcion}</p>}
-                        <div style={{ display:"flex", gap:"6px", alignItems:"center", flexWrap:"wrap" }}>
-                          <span style={{ fontSize:"10px", background: ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"): ev.tipo==="reunion"?"#4a1d96":"#166634", color:"#e2e8f0", padding:"2px 6px", borderRadius:"3px" }}>{ev.tipo}</span>
-                          {ev.tipo === "trabajo" && (
-                            <button onClick={()=>toggleEntrega(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background: ev.entregado?"#14532d":"#7c2d12", color: ev.entregado?"#4ade80":"#fca5a5" }}>
-                              {ev.entregado ? "✅ Entregado" : "⏳ Pendiente"}
-                            </button>
-                          )}
+                    <div key={idx} style={{ background:"#09090b", borderRadius:"8px", padding:"12px", marginBottom:"8px" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"12px" }}>
+                        <div style={{ flex:1 }}>
+                          <div style={{ display:"flex", gap:"6px", alignItems:"center", marginBottom:"5px", flexWrap:"wrap" }}>
+                            <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"3px",
+                              background: ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"):
+                                ev.tipo==="reunion"?"#4c1d95": ev.tipo==="recordatorio"?"#713f12":
+                                ev.tipo==="pago"?"#064e3b":"#1e3a5f",
+                              color: ev.tipo==="trabajo"?(ev.entregado?"#4ade80":"#fb923c"):
+                                ev.tipo==="reunion"?"#c4b5fd": ev.tipo==="recordatorio"?"#fcd34d":
+                                ev.tipo==="pago"?"#6ee7b7":"#93c5fd"
+                            }}>{ev.tipo.toUpperCase()}</span>
+                            {ev.tipo==="trabajo" && (
+                              <button onClick={()=>toggleEntrega(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background: ev.entregado?"#7c2d12":"#14532d", color: ev.entregado?"#fb923c":"#4ade80" }}>
+                                {ev.entregado?"↩ Marcar pendiente":"✅ Marcar entregado"}
+                              </button>
+                            )}
+                          </div>
+                          <p style={{ color:"#fff", fontSize:"13px", fontWeight:600, marginBottom:"3px" }}>{ev.titulo}</p>
+                          {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>}
                         </div>
+                        {ev.tipo !== "trabajo" && (
+                          <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"18px" }} onClick={()=>delEv(ev.id)}>🗑</button>
+                        )}
                       </div>
-                      {ev.tipo !== "trabajo" && <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"16px" }} onClick={()=>delEv(ev.id)}>🗑</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Lista próximas entregas */}
+              {trabajosMesCal.filter(e=>!e.entregado).length > 0 && (
+                <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"10px", padding:"16px" }}>
+                  <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#fb923c", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>⏳ Entregas pendientes este mes</p>
+                  {trabajosMesCal.filter(e=>!e.entregado).map((ev,idx)=>(
+                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
+                      <div>
+                        <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{ev.titulo}</p>
+                        <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <p style={{ color:"#fb923c", fontSize:"12px", fontWeight:700 }}>{ev.fecha}</p>
+                        <button onClick={()=>toggleEntrega(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:"#14532d", color:"#4ade80", marginTop:"4px" }}>✅ Entregado</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1094,23 +1168,24 @@ export default function App() {
               {showFormEv && (
                 <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
                   <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"400px", padding:"24px" }}>
-                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>Nuevo Evento · {formEv.fecha}</p>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>
+                      Nuevo Evento · {formEv.fecha && new Date(formEv.fecha+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"long"})}
+                    </p>
                     <div style={{ marginBottom:"12px" }}>
                       <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Tipo</label>
-                      <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px" }} value={formEv.tipo} onChange={e=>setFormEv(f=>({...f,tipo:e.target.value}))}>
-                        <option value="tarea">Tarea</option>
-                        <option value="reunion">Reunión</option>
-                        <option value="recordatorio">Recordatorio</option>
-                        <option value="pago">Pago</option>
-                      </select>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px" }}>
+                        {[["tarea","📋 Tarea","#1e3a5f","#93c5fd"],["reunion","🤝 Reunión","#4c1d95","#c4b5fd"],["recordatorio","🔔 Recordatorio","#713f12","#fcd34d"],["pago","💰 Pago","#064e3b","#6ee7b7"]].map(([val,lbl,bg,col])=>(
+                          <button key={val} onClick={()=>setFormEv(f=>({...f,tipo:val}))} style={{ padding:"8px", borderRadius:"6px", cursor:"pointer", border:`2px solid ${formEv.tipo===val?col:"#3f3f46"}`, background: formEv.tipo===val?bg:"transparent", color: formEv.tipo===val?col:"#71717a", fontFamily:"monospace", fontSize:"12px", fontWeight: formEv.tipo===val?700:400 }}>{lbl}</button>
+                        ))}
+                      </div>
                     </div>
                     <div style={{ marginBottom:"12px" }}>
                       <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Título</label>
-                      <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formEv.titulo} onChange={e=>setFormEv(f=>({...f,titulo:e.target.value}))} placeholder="Ej: Reunión con MAODENTAL"/>
+                      <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formEv.titulo} onChange={e=>setFormEv(f=>({...f,titulo:e.target.value}))} placeholder="Ej: Reunión con MAODENTAL"/>
                     </div>
                     <div style={{ marginBottom:"16px" }}>
                       <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Descripción (opcional)</label>
-                      <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formEv.descripcion} onChange={e=>setFormEv(f=>({...f,descripcion:e.target.value}))}/>
+                      <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formEv.descripcion} onChange={e=>setFormEv(f=>({...f,descripcion:e.target.value}))}/>
                     </div>
                     <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
                       <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setShowFormEv(false)}>Cancelar</button>
@@ -1125,73 +1200,114 @@ export default function App() {
 
         {/* ════ METAS ════ */}
         {tab === "metas" && (() => {
-          const metaMes = metas[filtroMes] || 0;
-          const ingresadoMes = mesActual.ingresos || 0;
-          const pct = metaMes > 0 ? Math.min(Math.round(ingresadoMes/metaMes*100),100) : 0;
           const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+          const metaMes = metas[filtroMes] || {};
+          const metaIngresos = metaMes.ingresos || 0;
+          const metaTrabajos = metaMes.trabajos || 0;
+          const metaGastos = metaMes.gastos || 0;
+
+          const ingresadoMes = mesActual.ingresos || 0;
+          const trabajosMes = mesActual.count || 0;
+          const gastosMes = mesActual.gastos || 0;
+
+          const pctIng = metaIngresos > 0 ? Math.min(Math.round(ingresadoMes/metaIngresos*100),100) : 0;
+          const pctTrab = metaTrabajos > 0 ? Math.min(Math.round(trabajosMes/metaTrabajos*100),100) : 0;
+          const pctGas = metaGastos > 0 ? Math.min(Math.round(gastosMes/metaGastos*100),100) : 0;
+
+          const [editMeta, setEditMeta] = useState({ ingresos: String(metaIngresos||""), trabajos: String(metaTrabajos||""), gastos: String(metaGastos||"") });
+          const [editando, setEditando] = useState(false);
+
+          const guardarMeta = () => {
+            const next = { ...metas, [filtroMes]: { ingresos: Number(editMeta.ingresos)||0, trabajos: Number(editMeta.trabajos)||0, gastos: Number(editMeta.gastos)||0 }};
+            setMetas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, next);
+            setEditando(false);
+          };
+
+          const BarraMeta = ({label, actual, meta, pct, colorOk, colorMal, unidad, invertir}) => {
+            const bien = invertir ? pct <= 100 : pct >= 100;
+            const color = meta > 0 ? (bien ? colorOk : pct >= 66 ? "#f59e0b" : colorMal) : "#52525b";
+            return (
+              <div style={{ background:"#09090b", borderRadius:"8px", padding:"14px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"8px" }}>
+                  <div>
+                    <p style={{ fontSize:"12px", color:"#d4d4d8", fontWeight:600 }}>{label}</p>
+                    <p style={{ fontSize:"11px", color:"#52525b", marginTop:"2px" }}>Meta: {meta > 0 ? (unidad==="$"?fmtCLP(meta):`${meta} trabajos`) : "Sin meta"}</p>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <p style={{ fontSize:"20px", fontWeight:700, color }}>{unidad==="$"?fmtCLP(actual):`${actual}`}</p>
+                    {meta > 0 && <p style={{ fontSize:"12px", color, fontWeight:700 }}>{pct}%</p>}
+                  </div>
+                </div>
+                {meta > 0 && (
+                  <div style={{ background:"#27272a", borderRadius:"99px", height:"8px", overflow:"hidden" }}>
+                    <div style={{ background:color, height:"8px", borderRadius:"99px", width:`${Math.min(pct,100)}%`, transition:"width 0.5s" }}/>
+                  </div>
+                )}
+                {meta > 0 && bien && pct >= 100 && <p style={{ fontSize:"11px", color:colorOk, marginTop:"6px", fontWeight:700 }}>🎉 ¡Meta cumplida!</p>}
+                {meta > 0 && invertir && pct > 100 && <p style={{ fontSize:"11px", color:colorMal, marginTop:"6px", fontWeight:700 }}>⚠️ Gastos sobre el límite</p>}
+              </div>
+            );
+          };
 
           return (
             <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
               {/* Selector mes */}
-              <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                <label style={{ fontSize:"11px", color:"#71717a" }}>Mes:</label>
-                <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"13px" }} value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}>
-                  {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"8px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                  <label style={{ fontSize:"11px", color:"#71717a" }}>Mes:</label>
+                  <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"13px" }} value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}>
+                    {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                </div>
+                <button onClick={()=>{ setEditMeta({ ingresos:String(metaIngresos||""), trabajos:String(metaTrabajos||""), gastos:String(metaGastos||"") }); setEditando(true); }} style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"8px 16px", borderRadius:"6px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }}>✏️ Editar metas</button>
               </div>
 
-              {/* Meta card */}
-              <div style={{ background:"#18181b", border:"1px solid #854d0e", borderRadius:"10px", padding:"20px", background:"#1c1408" }}>
-                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#f59e0b", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"8px" }}>🎯 Meta de ingresos · {MESES.find(m=>m.value===filtroMes)?.label}</p>
-                {editandoMeta ? (
-                  <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
-                    <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"16px", width:"180px" }} value={metaInput} onChange={e=>setMetaInput(e.target.value)} autoFocus/>
-                    <button style={{ background:"#22d3ee", color:"#09090b", padding:"8px 18px", borderRadius:"6px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={saveMeta}>Guardar</button>
-                    <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"8px 18px", borderRadius:"6px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setEditandoMeta(false)}>✕</button>
+              {/* Modal editar metas */}
+              {editando && (
+                <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
+                  <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"380px", padding:"24px" }}>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"4px" }}>🎯 Metas · {MESES.find(m=>m.value===filtroMes)?.label}</p>
+                    <p style={{ fontSize:"12px", color:"#52525b", marginBottom:"16px" }}>Deja en 0 si no quieres usar esa meta</p>
+                    {[
+                      ["Meta de ingresos ($)", "ingresos", "Ej: 800000"],
+                      ["Meta de trabajos", "trabajos", "Ej: 20"],
+                      ["Límite de gastos ($)", "gastos", "Ej: 150000"],
+                    ].map(([lbl, key, ph])=>(
+                      <div key={key} style={{ marginBottom:"12px" }}>
+                        <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>{lbl}</label>
+                        <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"14px", boxSizing:"border-box" }} placeholder={ph} value={editMeta[key]} onChange={e=>setEditMeta(f=>({...f,[key]:e.target.value}))}/>
+                      </div>
+                    ))}
+                    <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end", marginTop:"4px" }}>
+                      <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setEditando(false)}>Cancelar</button>
+                      <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={guardarMeta}>Guardar</button>
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                    <p style={{ fontSize:"28px", fontWeight:700, color:"#fbbf24" }}>{metaMes>0?fmtCLP(metaMes):"Sin meta"}</p>
-                    <button style={{ padding:"5px 10px", fontSize:"12px", borderRadius:"5px", cursor:"pointer", border:"1px solid #52525b", background:"transparent", color:"#a1a1aa", fontFamily:"monospace" }} onClick={()=>{ setMetaInput(String(metaMes)); setEditandoMeta(true); }}>✏️ Editar</button>
-                  </div>
-                )}
+                </div>
+              )}
+
+              {/* Barras de progreso */}
+              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+                <BarraMeta label="💰 Ingresos" actual={ingresadoMes} meta={metaIngresos} pct={pctIng} colorOk="#4ade80" colorMal="#f87171" unidad="$" invertir={false}/>
+                <BarraMeta label="🔧 Trabajos realizados" actual={trabajosMes} meta={metaTrabajos} pct={pctTrab} colorOk="#4ade80" colorMal="#f87171" unidad="N" invertir={false}/>
+                <BarraMeta label="💸 Control de gastos" actual={gastosMes} meta={metaGastos} pct={pctGas} colorOk="#4ade80" colorMal="#f87171" unidad="$" invertir={true}/>
               </div>
 
-              {/* Progreso */}
-              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"20px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
-                  <p style={{ color:"#d4d4d8", fontSize:"13px" }}>Progreso</p>
-                  <p style={{ color: pct>=100?"#4ade80":pct>=50?"#f59e0b":"#f87171", fontWeight:700, fontSize:"13px" }}>{pct}%</p>
-                </div>
-                <div style={{ background:"#27272a", borderRadius:"99px", height:"12px", overflow:"hidden" }}>
-                  <div style={{ background: pct>=100?"#22c55e":pct>=50?"#f59e0b":"#ef4444", height:"12px", borderRadius:"99px", width:`${pct}%`, transition:"width 0.5s" }}/>
-                </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginTop:"16px" }}>
-                  <div style={{ background:"#09090b", borderRadius:"8px", padding:"12px" }}>
-                    <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Ingresado</p>
-                    <p style={{ fontSize:"16px", fontWeight:700, color:"#22d3ee" }}>{fmtCLP(ingresadoMes)}</p>
-                  </div>
-                  <div style={{ background:"#09090b", borderRadius:"8px", padding:"12px" }}>
-                    <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Falta</p>
-                    <p style={{ fontSize:"16px", fontWeight:700, color: metaMes-ingresadoMes<=0?"#4ade80":"#f87171" }}>{fmtCLP(Math.max(0,metaMes-ingresadoMes))}</p>
-                  </div>
-                </div>
-                {pct>=100 && <div style={{ marginTop:"12px", background:"rgba(34,197,94,0.1)", border:"1px solid #166534", borderRadius:"8px", padding:"12px", textAlign:"center" }}><p style={{ color:"#4ade80", fontWeight:700, fontSize:"14px" }}>🎉 ¡Meta cumplida!</p></div>}
-              </div>
-
-              {/* Historial metas */}
+              {/* Historial */}
               <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
-                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>Historial de metas 2026</p>
-                {MESES.filter(m=>metas[m.value]).map(m => {
-                  const meta = metas[m.value] || 0;
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>Historial 2026</p>
+                {MESES.filter(m => metas[m.value] && (metas[m.value].ingresos||metas[m.value].trabajos||metas[m.value].gastos)).map(m => {
+                  const mt = metas[m.value] || {};
                   const ing = (stats.porMes[m.value]||{}).ingresos||0;
-                  const p = meta>0?Math.min(Math.round(ing/meta*100),100):0;
+                  const trab = (stats.porMes[m.value]||{}).count||0;
+                  const gas = (stats.porMes[m.value]||{}).gastos||0;
+                  const pI = mt.ingresos>0?Math.min(Math.round(ing/mt.ingresos*100),100):null;
                   return (
                     <div key={m.value} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
                       <span style={{ color:"#d4d4d8", fontSize:"13px" }}>{m.label}</span>
                       <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
-                        <span style={{ color:"#52525b", fontSize:"12px" }}>{fmtCLP(ing)} / {fmtCLP(meta)}</span>
-                        <span style={{ color: p>=100?"#4ade80":p>=50?"#f59e0b":"#f87171", fontWeight:700, fontSize:"12px" }}>{p}%</span>
+                        {pI !== null && <span style={{ color: pI>=100?"#4ade80":pI>=50?"#f59e0b":"#f87171", fontWeight:700, fontSize:"12px" }}>💰 {pI}%</span>}
+                        {mt.trabajos>0 && <span style={{ color: trab>=mt.trabajos?"#4ade80":"#f59e0b", fontSize:"12px" }}>🔧 {trab}/{mt.trabajos}</span>}
                       </div>
                     </div>
                   );
@@ -1442,42 +1558,6 @@ export default function App() {
           );
         })()}
 
-        {/* ════ NOTAS ════ */}
-        {tab === "notas" && (
-          <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
-            <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"14px", fontWeight:700, color:"#fff" }}>💬 Notas rápidas</p>
-            
-            {/* Input nueva nota */}
-            <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
-              <textarea
-                style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box", resize:"none" }}
-                rows={3}
-                placeholder="Escribe una nota rápida... (reunión, recordatorio, tarea pendiente)"
-                value={notaInput}
-                onChange={e=>setNotaInput(e.target.value)}
-                onKeyDown={e=>{ if(e.key==="Enter" && e.ctrlKey) addNota(); }}
-              />
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"8px" }}>
-                <p style={{ fontSize:"11px", color:"#52525b" }}>Ctrl+Enter para guardar</p>
-                <button style={{ background:"#22d3ee", color:"#09090b", padding:"8px 20px", borderRadius:"6px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={addNota}>Guardar nota</button>
-              </div>
-            </div>
-
-            {/* Lista notas */}
-            {notas.length===0 && <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#52525b" }}>Sin notas todavía</div>}
-            {[...notas].reverse().map(n => (
-              <div key={n.id} style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", gap:"12px" }}>
-                  <div style={{ flex:1 }}>
-                    <p style={{ color:"#f4f4f5", fontSize:"13px", lineHeight:"1.6", whiteSpace:"pre-wrap" }}>{n.texto}</p>
-                    <p style={{ fontSize:"11px", color:"#52525b", marginTop:"8px" }}>📅 {n.fecha}</p>
-                  </div>
-                  <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"18px", alignSelf:"flex-start" }} onClick={()=>delNota(n.id)}>🗑</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* ════ INFORME MENSUAL ════ */}
         {tab === "informe" && (() => {
