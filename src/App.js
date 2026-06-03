@@ -290,7 +290,13 @@ export default function App() {
   };
   const delEv = (id) => { const next = eventos.filter(e=>e.id!==id); setEventos(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas); };
 
-  // Trabajos en calendario con +4 días
+  // ── TOGGLE ENTREGA TRABAJO ──
+  const toggleEntrega = (trabajoId) => {
+    const next = trabajos.map(t => t.id === trabajoId ? { ...t, entregado: !t.entregado } : t);
+    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
+  };
+
+  // Trabajos en calendario con +5 días
   const addDias = (fechaStr, dias) => {
     if (!fechaStr) return null;
     const d = new Date(fechaStr + "T12:00:00");
@@ -301,8 +307,8 @@ export default function App() {
   const eventosDelDia = (fecha) => {
     const evManuales = eventos.filter(e => e.fecha === fecha);
     const evTrabajos = trabajos
-      .filter(t => { const fe = addDias(t.fecha_ingreso, 4); return fe === fecha; })
-      .map(t => ({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica} · ${t.paciente||""}`, tipo:"trabajo", fecha }));
+      .filter(t => { const fe = addDias(t.fecha_ingreso, 5); return fe === fecha; })
+      .map(t => ({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica} · ${t.paciente||""}`, tipo:"trabajo", fecha, entregado: t.entregado || false, trabajoId: t.id }));
     return [...evManuales, ...evTrabajos];
   };
 
@@ -995,7 +1001,7 @@ export default function App() {
                     <div key={d} onClick={()=>setDiaSeleccionado(seleccionado?null:fecha)} style={{ background: seleccionado?"#1e3a5f": esHoy?"#1c2420":"#18181b", border:`1px solid ${seleccionado?"#3b82f6":esHoy?"#22c55e":"#3f3f46"}`, borderRadius:"6px", padding:"6px 4px", cursor:"pointer", minHeight:"52px" }}>
                       <p style={{ fontSize:"12px", fontWeight: esHoy?700:400, color: esHoy?"#4ade80":"#d4d4d8", marginBottom:"3px", textAlign:"center" }}>{d}</p>
                       {evs.slice(0,2).map((ev,idx)=>(
-                        <div key={idx} style={{ fontSize:"9px", background: ev.tipo==="trabajo"?"#164e63": ev.tipo==="reunion"?"#4a1d96":"#14532d", color:"#e2e8f0", borderRadius:"3px", padding:"1px 4px", marginBottom:"2px", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>{ev.titulo}</div>
+                        <div key={idx} style={{ fontSize:"9px", background: ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"): ev.tipo==="reunion"?"#4a1d96":"#166534", color:"#e2e8f0", borderRadius:"3px", padding:"1px 4px", marginBottom:"2px", overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>{ev.titulo}</div>
                       ))}
                       {evs.length>2 && <div style={{ fontSize:"9px", color:"#52525b" }}>+{evs.length-2} más</div>}
                     </div>
@@ -1012,11 +1018,18 @@ export default function App() {
                   </div>
                   {eventosDelDia(diaSeleccionado).length === 0 && <p style={{ color:"#52525b", fontSize:"13px" }}>Sin eventos este día</p>}
                   {eventosDelDia(diaSeleccionado).map((ev,idx) => (
-                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
-                      <div>
-                        <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{ev.titulo}</p>
-                        {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>}
-                        <span style={{ fontSize:"10px", background: ev.tipo==="trabajo"?"#164e63": ev.tipo==="reunion"?"#4a1d96":"#14532d", color:"#e2e8f0", padding:"2px 6px", borderRadius:"3px" }}>{ev.tipo}</span>
+                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"10px 0", borderBottom:"1px solid #27272a" }}>
+                      <div style={{ flex:1 }}>
+                        <p style={{ color:"#fff", fontSize:"13px", fontWeight:600, marginBottom:"3px" }}>{ev.titulo}</p>
+                        {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px", marginBottom:"4px" }}>{ev.descripcion}</p>}
+                        <div style={{ display:"flex", gap:"6px", alignItems:"center", flexWrap:"wrap" }}>
+                          <span style={{ fontSize:"10px", background: ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"): ev.tipo==="reunion"?"#4a1d96":"#166634", color:"#e2e8f0", padding:"2px 6px", borderRadius:"3px" }}>{ev.tipo}</span>
+                          {ev.tipo === "trabajo" && (
+                            <button onClick={()=>toggleEntrega(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background: ev.entregado?"#14532d":"#7c2d12", color: ev.entregado?"#4ade80":"#fca5a5" }}>
+                              {ev.entregado ? "✅ Entregado" : "⏳ Pendiente"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {ev.tipo !== "trabajo" && <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"16px" }} onClick={()=>delEv(ev.id)}>🗑</button>}
                     </div>
