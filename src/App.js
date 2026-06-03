@@ -167,6 +167,15 @@ export default function App() {
   const [metas, setMetas] = useState({});
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [metaInput, setMetaInput] = useState("");
+
+  // Notas
+  const [notas, setNotas] = useState([]);
+  const [notaInput, setNotaInput] = useState("");
+
+  // Deudas
+  const [deudas, setDeudas] = useState([]);
+  const [showFormD, setShowFormD] = useState(false);
+  const [formD, setFormD] = useState({ clinica:"", monto:"", desde:"", descripcion:"", estado:"PENDIENTE" });
   const [editandoCapital, setEditandoCapital] = useState(false);
   const [capitalInput, setCapitalInput] = useState("1000000");
 
@@ -187,6 +196,8 @@ export default function App() {
         setFacturas(d.facturas || []);
         setEventos(d.eventos || []);
         setMetas(d.metas || {});
+        setNotas(d.notas || []);
+        setDeudas(d.deudas || []);
       } else {
         setTrabajos(TRABAJOS_INICIALES); setClinicas(CLINICAS_INICIALES);
         setGastos(GASTOS_INICIALES); setInventario(INVENTARIO_INICIAL);
@@ -195,7 +206,7 @@ export default function App() {
     })();
   }, []);
 
-  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt) => {
+  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt, nt, deu) => {
     setGuardando(true);
     await guardarDatos({ 
       trabajos: t, 
@@ -206,9 +217,11 @@ export default function App() {
       facturas: f !== undefined ? f : facturas,
       eventos: ev !== undefined ? ev : eventos,
       metas: mt !== undefined ? mt : metas,
+      notas: nt !== undefined ? nt : notas,
+      deudas: deu !== undefined ? deu : deudas,
     });
     setTimeout(() => setGuardando(false), 1200);
-  }, [capitalBase, facturas, eventos, metas]);
+  }, [capitalBase, facturas, eventos, metas, notas, deudas]);
 
   const stats = useMemo(() => {
     const porMes = {};
@@ -318,6 +331,24 @@ export default function App() {
     setMetas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, next);
     setEditandoMeta(false);
   };
+
+  // ── HANDLERS NOTAS ──
+  const addNota = () => {
+    if (!notaInput.trim()) return;
+    const next = [...notas, { id: Math.max(0,...notas.map(x=>x.id),0)+1, texto: notaInput, fecha: new Date().toLocaleDateString("es-CL"), autor: "" }];
+    setNotas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next, deudas);
+    setNotaInput("");
+  };
+  const delNota = (id) => { const next = notas.filter(n=>n.id!==id); setNotas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, next, deudas); };
+
+  // ── HANDLERS DEUDAS ──
+  const saveD = () => {
+    const next = [...deudas, { ...formD, id: Math.max(0,...deudas.map(x=>x.id),0)+1 }];
+    setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, notas, next);
+    setShowFormD(false); setFormD({ clinica:"", monto:"", desde:"", descripcion:"", estado:"PENDIENTE" });
+  };
+  const delD = (id) => { const next = deudas.filter(d=>d.id!==id); setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, notas, next); };
+  const toggleDeuda = (id) => { const next = deudas.map(d=>d.id===id?{...d,estado:d.estado==="PENDIENTE"?"COBRADA":"PENDIENTE"}:d); setDeudas(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, notas, next); };
 
   const mesActual = stats.porMes[filtroMes] || { ingresos: 0, count: 0, pagado: 0, pendiente: 0, gastos: 0 };
 
@@ -435,7 +466,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["notas","💬 Notas"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1151,6 +1182,237 @@ export default function App() {
             </div>
           );
         })()}
+
+        {/* ════ RANKING ANUAL ════ */}
+        {tab === "ranking" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+          
+          // Ranking por clínica (todo el año)
+          const rankClin = {};
+          trabajos.forEach(t => {
+            if (!rankClin[t.clinica]) rankClin[t.clinica] = { total:0, count:0, cobrado:0 };
+            rankClin[t.clinica].total += Number(t.valor);
+            rankClin[t.clinica].count += 1;
+            if (["PAGADO","FACTURADO"].includes(t.estado_pago)) rankClin[t.clinica].cobrado += Number(t.valor);
+          });
+          const rankArr = Object.entries(rankClin).sort((a,b)=>b[1].total-a[1].total);
+          const maxTotal = rankArr[0]?.[1]?.total || 1;
+
+          // Ranking por área
+          const rankArea = {};
+          trabajos.forEach(t => {
+            if (!rankArea[t.area]) rankArea[t.area] = { total:0, count:0 };
+            rankArea[t.area].total += Number(t.valor);
+            rankArea[t.area].count += 1;
+          });
+          const rankAreaArr = Object.entries(rankArea).sort((a,b)=>b[1].total-a[1].total);
+
+          // Ingresos por mes para gráfico anual
+          const maxIng = Math.max(...MESES.map(m=>(stats.porMes[m.value]||{}).ingresos||0),1);
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              {/* Gráfico anual */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"16px" }}>📊 Ingresos mensuales 2026</p>
+                <div style={{ display:"flex", alignItems:"flex-end", gap:"6px", height:"100px" }}>
+                  {MESES.map(m => {
+                    const ing = (stats.porMes[m.value]||{}).ingresos||0;
+                    const gas = (stats.porMes[m.value]||{}).gastos||0;
+                    const h = Math.round(ing/maxIng*88);
+                    const hg = Math.round(gas/maxIng*88);
+                    const esActual = m.value === filtroMes;
+                    return (
+                      <div key={m.value} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
+                        {ing>0 && <p style={{ fontSize:"8px", color:"#52525b" }}>{(ing/1000).toFixed(0)}k</p>}
+                        <div style={{ width:"100%", display:"flex", alignItems:"flex-end", gap:"1px", height:"88px" }}>
+                          <div style={{ flex:1, background: esActual?"#22d3ee":"#164e63", borderRadius:"3px 3px 0 0", height:`${h}%`, minHeight:ing>0?"2px":"0" }}/>
+                          <div style={{ flex:1, background:"#7f1d1d", borderRadius:"3px 3px 0 0", height:`${hg}%`, minHeight:gas>0?"2px":"0" }}/>
+                        </div>
+                        <p style={{ fontSize:"8px", color: esActual?"#22d3ee":"#52525b", fontWeight: esActual?700:400 }}>{m.label.slice(0,3)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display:"flex", gap:"16px", marginTop:"8px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"8px", height:"8px", borderRadius:"2px", background:"#22d3ee" }}/><span style={{ fontSize:"10px", color:"#71717a" }}>Ingresos</span></div>
+                  <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"8px", height:"8px", borderRadius:"2px", background:"#7f1d1d" }}/><span style={{ fontSize:"10px", color:"#71717a" }}>Gastos</span></div>
+                </div>
+              </div>
+
+              {/* Ranking clínicas */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>🏆 Ranking clínicas — Todo 2026</p>
+                {rankArr.map(([nombre, d], idx) => (
+                  <div key={nombre} style={{ marginBottom:"12px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"4px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                        <span style={{ fontSize:"16px", fontWeight:700, color: idx===0?"#fbbf24": idx===1?"#94a3b8": idx===2?"#b45309":"#52525b" }}>{idx===0?"🥇":idx===1?"🥈":idx===2?"🥉":`${idx+1}.`}</span>
+                        <span style={{ color:"#d4d4d8", fontSize:"13px" }}>{nombre}</span>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"13px" }}>{fmtCLP(d.total)}</p>
+                        <p style={{ color:"#52525b", fontSize:"11px" }}>{d.count} trabajos</p>
+                      </div>
+                    </div>
+                    <div style={{ background:"#27272a", borderRadius:"99px", height:"6px" }}>
+                      <div style={{ background: idx===0?"#fbbf24": idx===1?"#94a3b8": idx===2?"#b45309":"#22d3ee", height:"6px", borderRadius:"99px", width:`${d.total/maxTotal*100}%` }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ranking por área */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>📋 Por área de trabajo — Todo 2026</p>
+                {rankAreaArr.map(([area, d]) => {
+                  const maxA = rankAreaArr[0]?.[1]?.total||1;
+                  return (
+                    <div key={area} style={{ marginBottom:"10px" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"3px" }}>
+                        <span style={{ color:"#d4d4d8" }}>{area}</span>
+                        <span style={{ color:"#4ade80", fontWeight:700 }}>{fmtCLP(d.total)} <span style={{ color:"#52525b", fontWeight:400 }}>({d.count} trabajos)</span></span>
+                      </div>
+                      <div style={{ background:"#27272a", borderRadius:"99px", height:"5px" }}>
+                        <div style={{ background:"#22c55e", height:"5px", borderRadius:"99px", width:`${d.total/maxA*100}%` }}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Totales anuales */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
+                <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                  <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Total ingresos 2026</p>
+                  <p style={{ fontSize:"18px", fontWeight:700, color:"#22d3ee" }}>{fmtCLP(trabajos.reduce((s,t)=>s+Number(t.valor),0))}</p>
+                </div>
+                <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                  <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Total trabajos 2026</p>
+                  <p style={{ fontSize:"18px", fontWeight:700, color:"#fff" }}>{trabajos.length}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ════ DEUDAS ════ */}
+        {tab === "deudas" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+          const deudaPendiente = deudas.filter(d=>d.estado==="PENDIENTE").reduce((s,d)=>s+Number(d.monto||0),0);
+          const deudaCobrada = deudas.filter(d=>d.estado==="COBRADA").reduce((s,d)=>s+Number(d.monto||0),0);
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <p style={{ fontSize:"13px", color:"#71717a" }}>{deudas.filter(d=>d.estado==="PENDIENTE").length} deudas pendientes</p>
+                <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>setShowFormD(true)}>+ Deuda</button>
+              </div>
+
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
+                <div style={{ background:"#18181b", border:"1px solid #7f1d1d", borderRadius:"10px", padding:"16px" }}>
+                  <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Por cobrar</p>
+                  <p style={{ fontSize:"18px", fontWeight:700, color:"#f87171" }}>{fmtCLP(deudaPendiente)}</p>
+                </div>
+                <div style={{ background:"#18181b", border:"1px solid #14532d", borderRadius:"10px", padding:"16px" }}>
+                  <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"4px" }}>Cobradas</p>
+                  <p style={{ fontSize:"18px", fontWeight:700, color:"#4ade80" }}>{fmtCLP(deudaCobrada)}</p>
+                </div>
+              </div>
+
+              {deudas.length===0 && <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#52525b" }}>Sin deudas registradas</div>}
+              
+              {/* Pendientes primero */}
+              {["PENDIENTE","COBRADA"].map(estado => {
+                const lista = deudas.filter(d=>d.estado===estado);
+                if (lista.length===0) return null;
+                return (
+                  <div key={estado}>
+                    <p style={{ fontSize:"11px", color: estado==="PENDIENTE"?"#f87171":"#4ade80", fontWeight:700, marginBottom:"8px", textTransform:"uppercase", letterSpacing:"1px" }}>{estado==="PENDIENTE"?"⏳ Pendientes":"✅ Cobradas"}</p>
+                    {lista.map(d => (
+                      <div key={d.id} style={{ background:"#18181b", border:`1px solid ${d.estado==="PENDIENTE"?"#7f1d1d":"#14532d"}`, borderRadius:"10px", padding:"16px", marginBottom:"8px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
+                          <div style={{ flex:1 }}>
+                            <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{d.clinica}</p>
+                            {d.descripcion && <p style={{ fontSize:"12px", color:"#71717a", marginBottom:"3px" }}>{d.descripcion}</p>}
+                            {d.desde && <p style={{ fontSize:"11px", color:"#52525b" }}>Desde: {d.desde}</p>}
+                          </div>
+                          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
+                            <p style={{ fontWeight:700, fontSize:"16px", color: d.estado==="PENDIENTE"?"#f87171":"#4ade80" }}>{fmtCLP(d.monto||0)}</p>
+                            <div style={{ display:"flex", gap:"4px" }}>
+                              <button onClick={()=>toggleDeuda(d.id)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background: d.estado==="PENDIENTE"?"#14532d":"#7f1d1d", color: d.estado==="PENDIENTE"?"#4ade80":"#f87171" }}>
+                                {d.estado==="PENDIENTE"?"✅ Marcar cobrada":"↩ Reabrir"}
+                              </button>
+                              <button style={{ padding:"5px 10px", fontSize:"12px", borderRadius:"5px", cursor:"pointer", border:"1px solid #52525b", background:"transparent", color:"#f87171" }} onClick={()=>delD(d.id)}>🗑</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+
+              {showFormD && (
+                <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
+                  <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"400px", padding:"24px" }}>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>Nueva Deuda</p>
+                    <div style={{ marginBottom:"12px" }}><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Clínica / Deudor</label>
+                      <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formD.clinica} onChange={e=>setFormD(f=>({...f,clinica:e.target.value}))}/></div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                      <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Monto ($)</label>
+                        <input type="number" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formD.monto} onChange={e=>setFormD(f=>({...f,monto:e.target.value}))}/></div>
+                      <div><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Desde</label>
+                        <input type="date" style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formD.desde} onChange={e=>setFormD(f=>({...f,desde:e.target.value}))}/></div>
+                    </div>
+                    <div style={{ marginBottom:"16px" }}><label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Descripción</label>
+                      <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formD.descripcion} onChange={e=>setFormD(f=>({...f,descripcion:e.target.value}))}/></div>
+                    <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
+                      <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setShowFormD(false)}>Cancelar</button>
+                      <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={saveD}>Guardar</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ════ NOTAS ════ */}
+        {tab === "notas" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+            <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"14px", fontWeight:700, color:"#fff" }}>💬 Notas rápidas</p>
+            
+            {/* Input nueva nota */}
+            <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+              <textarea
+                style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box", resize:"none" }}
+                rows={3}
+                placeholder="Escribe una nota rápida... (reunión, recordatorio, tarea pendiente)"
+                value={notaInput}
+                onChange={e=>setNotaInput(e.target.value)}
+                onKeyDown={e=>{ if(e.key==="Enter" && e.ctrlKey) addNota(); }}
+              />
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"8px" }}>
+                <p style={{ fontSize:"11px", color:"#52525b" }}>Ctrl+Enter para guardar</p>
+                <button style={{ background:"#22d3ee", color:"#09090b", padding:"8px 20px", borderRadius:"6px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={addNota}>Guardar nota</button>
+              </div>
+            </div>
+
+            {/* Lista notas */}
+            {notas.length===0 && <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#52525b" }}>Sin notas todavía</div>}
+            {[...notas].reverse().map(n => (
+              <div key={n.id} style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", gap:"12px" }}>
+                  <div style={{ flex:1 }}>
+                    <p style={{ color:"#f4f4f5", fontSize:"13px", lineHeight:"1.6", whiteSpace:"pre-wrap" }}>{n.texto}</p>
+                    <p style={{ fontSize:"11px", color:"#52525b", marginTop:"8px" }}>📅 {n.fecha}</p>
+                  </div>
+                  <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"18px", alignSelf:"flex-start" }} onClick={()=>delNota(n.id)}>🗑</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
       </div>
     </div>
