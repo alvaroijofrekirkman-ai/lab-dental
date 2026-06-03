@@ -474,7 +474,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1474,6 +1474,166 @@ export default function App() {
         })()}
 
 
+
+        {/* ════ ARANCEL ════ */}
+        {tab === "arancel" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+          
+          const ARANCEL = [
+            {
+              categoria: "🦷 Aparatos de Ortodoncia",
+              color: "#1e3a5f",
+              border: "#3b82f6",
+              items: [
+                { nombre: "Placa de Expansión o Schwartz", precio: 40000 },
+                { nombre: "Placa de Contención (acetato)", precio: 35000 },
+                { nombre: "Disyuntor Mc.Namara (sin bandas ni ganchos)", precio: 60000 },
+                { nombre: "Disyuntor Hyrax con alambre contorneado (sin bandas)", precio: 60000 },
+                { nombre: "Botón de Nance (sin bandas)", precio: 40000 },
+                { nombre: "Mantenedor de espacio (sin bandas)", precio: 30000 },
+                { nombre: "Placa de Contención Hawley", precio: 40000 },
+                { nombre: "Aparato de Mauricio (con tornillo)", precio: 46000 },
+                { nombre: "Contención de Begg", precio: 46000 },
+                { nombre: "Disyuntor Hass", precio: 58000 },
+                { nombre: "Barra Lingual de Nance", precio: 40000 },
+                { nombre: "Quad Helix", precio: 50000 },
+                { nombre: "Barra Transpalatina (BTP o TPA)", precio: 38000 },
+                { nombre: "Bionator 1 (estándar)", precio: 88000 },
+                { nombre: "Aparato Monoblock de Mauricio", precio: 48000 },
+                { nombre: "Reparaciones simple (Resortes, Retenedores, etc)", precio: 15000 },
+                { nombre: "Reparaciones complejas (Arco, Tornillo, etc)", precio: 20000 },
+              ]
+            },
+            {
+              categoria: "🦷 Prótesis Removibles",
+              color: "#14532d",
+              border: "#22c55e",
+              items: [
+                { nombre: "Prótesis parcial", precio: 65000 },
+                { nombre: "Prótesis total", precio: 65000 },
+                { nombre: "Prótesis con base metálica", precio: 100000 },
+                { nombre: "Prótesis inmediata", precio: 65000 },
+                { nombre: "Prótesis cosmética (hasta 3 dientes)", precio: 38000 },
+                { nombre: "Prótesis flexibles", precio: 90000 },
+                { nombre: "Rebasados total o parcial", precio: 30000 },
+                { nombre: "Reparación simple", precio: 25000 },
+                { nombre: "Reparación compleja", precio: 25000 },
+              ]
+            },
+            {
+              categoria: "😁 Planos",
+              color: "#4c1d95",
+              border: "#a855f7",
+              items: [
+                { nombre: "Plano de relajación acrílico", precio: 50000 },
+                { nombre: "Plano Estampado", precio: 35000 },
+                { nombre: "Plano relajación blando-dura", precio: 50000 },
+                { nombre: "Cubetillas de blanqueamiento", precio: 24000 },
+                { nombre: "Protector bucal personal simple", precio: 40000 },
+                { nombre: "Protector bucal personal doble", precio: 55000 },
+                { nombre: "Dientes Provisorios", precio: 15000 },
+              ]
+            },
+            {
+              categoria: "🖨️ Impresión 3D",
+              color: "#713f12",
+              border: "#f59e0b",
+              items: [
+                { nombre: "1 Arcada", precio: 10000 },
+                { nombre: "2 Arcadas", precio: 12000 },
+                { nombre: "Planos de relajación (3D)", precio: 70000 },
+              ]
+            },
+            {
+              categoria: "🦷 Prótesis Fija — Resinas",
+              color: "#7f1d1d",
+              border: "#ef4444",
+              items: [
+                { nombre: "Corona periférica (resina)", precio: 50000 },
+                { nombre: "Carillas (resina)", precio: 45000 },
+                { nombre: "Incrustación onlay (resina)", precio: 40000 },
+                { nombre: "Incrustación inlay (resina)", precio: 33000 },
+                { nombre: "Corona sobre implante (resina)", precio: 53000 },
+              ]
+            },
+            {
+              categoria: "🦷 Prótesis Fija — Zirconio",
+              color: "#1e3a5f",
+              border: "#60a5fa",
+              items: [
+                { nombre: "Prótesis fija plural (por pieza)", precio: 108000 },
+                { nombre: "Carillas (zirconio)", precio: 100000 },
+                { nombre: "Corona (zirconio)", precio: 107000 },
+                { nombre: "Corona sobre implante (zirconio)", precio: 123000 },
+                { nombre: "Núcleo zirconio", precio: 70000 },
+                { nombre: "Aplicación de cerámica para zirconio", precio: 50000 },
+              ]
+            },
+            {
+              categoria: "🦷 Prótesis Fija — E.MAX (Cadcam Silicato)",
+              color: "#064e3b",
+              border: "#10b981",
+              items: [
+                { nombre: "Corona periférica (E.MAX)", precio: 100000 },
+                { nombre: "Carillas (E.MAX)", precio: 95000 },
+                { nombre: "Incrustación (E.MAX)", precio: 94000 },
+              ]
+            },
+          ];
+
+          const [busqArancel, setBusqArancel] = useState("");
+          const [catSeleccionada, setCatSeleccionada] = useState("Todas");
+
+          const arancelFiltrado = ARANCEL.map(cat => ({
+            ...cat,
+            items: cat.items.filter(item =>
+              busqArancel === "" || item.nombre.toLowerCase().includes(busqArancel.toLowerCase())
+            )
+          })).filter(cat =>
+            (catSeleccionada === "Todas" || cat.categoria === catSeleccionada) &&
+            cat.items.length > 0
+          );
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff" }}>📋 Arancel Dentis 2026</p>
+
+              {/* Buscador */}
+              <input
+                style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }}
+                placeholder="🔍 Buscar trabajo..."
+                value={busqArancel}
+                onChange={e=>setBusqArancel(e.target.value)}
+              />
+
+              {/* Filtro por categoría */}
+              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
+                {["Todas",...ARANCEL.map(c=>c.categoria)].map(cat=>(
+                  <button key={cat} onClick={()=>setCatSeleccionada(cat)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"1px solid", fontFamily:"monospace", background: catSeleccionada===cat?"#22d3ee":"transparent", color: catSeleccionada===cat?"#09090b":"#71717a", borderColor: catSeleccionada===cat?"#22d3ee":"#3f3f46" }}>
+                    {cat.length > 25 ? cat.slice(0,25)+"..." : cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Lista por categoría */}
+              {arancelFiltrado.map(cat=>(
+                <div key={cat.categoria} style={{ background:"#18181b", border:`1px solid ${cat.border}`, borderRadius:"10px", overflow:"hidden" }}>
+                  <div style={{ background:cat.color, padding:"10px 16px" }}>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"13px", fontWeight:700, color:"#fff" }}>{cat.categoria}</p>
+                  </div>
+                  {cat.items.map((item, idx)=>(
+                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 16px", borderBottom: idx<cat.items.length-1?"1px solid #27272a":"none", gap:"12px" }}>
+                      <p style={{ color:"#d4d4d8", fontSize:"13px", flex:1 }}>{item.nombre}</p>
+                      <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"15px", shrink:0, whiteSpace:"nowrap" }}>{fmtCLP(item.precio)}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>* Bandas no incluidas · Urgencias tienen cargo adicional</p>
+            </div>
+          );
+        })()}
 
       </div>
     </div>
