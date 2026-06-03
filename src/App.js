@@ -181,11 +181,18 @@ export default function App() {
     })();
   }, []);
 
-  const guardarTodo = useCallback(async (t, c, g, i, cap) => {
+  const guardarTodo = useCallback(async (t, c, g, i, cap, f) => {
     setGuardando(true);
-    await guardarDatos({ trabajos: t, clinicas: c, gastos: g, inventario: i, capitalBase: cap !== undefined ? cap : capitalBase });
+    await guardarDatos({ 
+      trabajos: t, 
+      clinicas: c, 
+      gastos: g, 
+      inventario: i, 
+      capitalBase: cap !== undefined ? cap : capitalBase,
+      facturas: f !== undefined ? f : facturas
+    });
     setTimeout(() => setGuardando(false), 1200);
-  }, [capitalBase]);
+  }, [capitalBase, facturas]);
 
   const stats = useMemo(() => {
     const porMes = {};
