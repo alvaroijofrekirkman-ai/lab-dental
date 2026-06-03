@@ -72,11 +72,11 @@ const TRABAJOS_INICIALES = [
 ];
 
 const GASTOS_INICIALES = [
-  { id: 1, mes: "2026-03", categoria: "Insumos", descripcion: "ALCOHOL ISOPROPILICO", medida: "LTS", cantidad: 2, valor_unit: 4500, valor_total: 9000, proveedor: "", observaciones: "" },
-  { id: 2, mes: "2026-03", categoria: "Insumos", descripcion: "TORNILLO HYRAX", medida: "UN", cantidad: 3, valor_unit: 8000, valor_total: 24000, proveedor: "", observaciones: "" },
-  { id: 3, mes: "2026-03", categoria: "Insumos", descripcion: "LAMINA DE ACETATO", medida: "UN", cantidad: 2, valor_unit: 3500, valor_total: 7000, proveedor: "", observaciones: "" },
-  { id: 4, mes: "2026-03", categoria: "Insumos", descripcion: "TORNILLO ESQUELETICO", medida: "UN", cantidad: 1, valor_unit: 9000, valor_total: 9000, proveedor: "", observaciones: "" },
-  { id: 5, mes: "2026-04", categoria: "Insumos", descripcion: "LAMINA DE ACETATO", medida: "UN", cantidad: 2, valor_unit: 3500, valor_total: 7000, proveedor: "", observaciones: "" },
+  { id: 1, mes: "2026-03", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "ALCOHOL ISOPROPILICO", medida: "LTS", cantidad: 2, valor_unit: 4500, valor_total: 9000, proveedor: "", observaciones: "" },
+  { id: 2, mes: "2026-03", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "TORNILLO HYRAX", medida: "UN", cantidad: 3, valor_unit: 8000, valor_total: 24000, proveedor: "", observaciones: "" },
+  { id: 3, mes: "2026-03", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "LAMINA DE ACETATO", medida: "UN", cantidad: 2, valor_unit: 3500, valor_total: 7000, proveedor: "", observaciones: "" },
+  { id: 4, mes: "2026-03", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "TORNILLO ESQUELETICO", medida: "UN", cantidad: 1, valor_unit: 9000, valor_total: 9000, proveedor: "", observaciones: "" },
+  { id: 5, mes: "2026-04", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "LAMINA DE ACETATO", medida: "UN", cantidad: 2, valor_unit: 3500, valor_total: 7000, proveedor: "", observaciones: "" },
 ];
 
 const INVENTARIO_INICIAL = [
@@ -132,7 +132,7 @@ const PILL_CLASS = {
 };
 
 const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "" };
-const emptyG = { mes: "2026-06", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "" };
+const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
 
 export default function App() {
@@ -697,7 +697,10 @@ export default function App() {
               <div key={g.id} className="card" style={{ padding:"16px" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", gap:"12px" }}>
                   <div style={{ flex:1 }}>
-                    <span style={{ fontSize:"11px", background:"#27272a", color:"#71717a", padding:"2px 8px", borderRadius:"4px", display:"inline-block", marginBottom:"6px" }}>{g.categoria}</span>
+                    <div style={{ display:"flex", gap:"6px", marginBottom:"6px", flexWrap:"wrap" }}>
+                      <span style={{ fontSize:"11px", background:"#27272a", color:"#71717a", padding:"2px 8px", borderRadius:"4px" }}>{g.categoria}</span>
+                      <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"4px", background: g.tipo_gasto==="Fijo"?"rgba(127,29,29,0.5)": g.tipo_gasto==="Variable"?"rgba(124,45,18,0.5)":"rgba(76,29,149,0.5)", color: g.tipo_gasto==="Fijo"?"#f87171": g.tipo_gasto==="Variable"?"#fb923c":"#a78bfa" }}>{g.tipo_gasto||"Variable"}</span>
+                    </div>
                     <p style={{ fontWeight:700, color:"#fff", fontSize:"14px" }}>{g.descripcion}</p>
                     <p style={{ fontSize:"12px", color:"#52525b" }}>{g.cantidad} {g.medida} × {fmt(g.valor_unit||0)}</p>
                     {g.proveedor && <p style={{ fontSize:"12px", color:"#3f3f46" }}>Prov: {g.proveedor}</p>}
