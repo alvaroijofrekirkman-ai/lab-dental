@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 
 // ── CREDENCIALES ─────────────────────────────────────────────────
 const USUARIOS = [
-  { usuario: "20.1821.180-0", clave: "odnoliub1234" },
+  { usuario: "20.182.180-0", clave: "odnoliub1234" },
   { usuario: "15.077.122-6", clave: "marley1234" },
 ];
 
@@ -172,6 +172,10 @@ export default function App() {
   const [notas, setNotas] = useState([]);
   const [notaInput, setNotaInput] = useState("");
 
+  // Registro de actividad
+  const [actividad, setActividad] = useState([]);
+  const [usuarioActual] = useState(() => sessionStorage.getItem("lab_usuario") || "Álvaro");
+
   // Deudas
   const [deudas, setDeudas] = useState([]);
   const [showFormD, setShowFormD] = useState(false);
@@ -198,6 +202,7 @@ export default function App() {
         setMetas(d.metas || {});
         setNotas(d.notas || []);
         setDeudas(d.deudas || []);
+        setActividad(d.actividad || []);
       } else {
         setTrabajos(TRABAJOS_INICIALES); setClinicas(CLINICAS_INICIALES);
         setGastos(GASTOS_INICIALES); setInventario(INVENTARIO_INICIAL);
@@ -206,7 +211,18 @@ export default function App() {
     })();
   }, []);
 
-  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt, nt, deu) => {
+  const registrarActividad = (accion, detalle, act) => {
+    const registro = {
+      id: Date.now(),
+      fecha: new Date().toLocaleString("es-CL"),
+      usuario: usuarioActual,
+      accion,
+      detalle
+    };
+    return [...(act || actividad).slice(-99), registro];
+  };
+
+  const guardarTodo = useCallback(async (t, c, g, i, cap, f, ev, mt, nt, deu, act) => {
     setGuardando(true);
     await guardarDatos({ 
       trabajos: t, 
@@ -219,9 +235,10 @@ export default function App() {
       metas: mt !== undefined ? mt : metas,
       notas: nt !== undefined ? nt : notas,
       deudas: deu !== undefined ? deu : deudas,
+      actividad: act !== undefined ? act : actividad,
     });
     setTimeout(() => setGuardando(false), 1200);
-  }, [capitalBase, facturas, eventos, metas, notas, deudas]);
+  }, [capitalBase, facturas, eventos, metas, notas, deudas, actividad]);
 
   const stats = useMemo(() => {
     const porMes = {};
@@ -361,6 +378,8 @@ export default function App() {
   const handleLogin = () => {
     if (USUARIOS.some(u => u.usuario === loginUser && u.clave === loginPass)) {
       sessionStorage.setItem("lab_auth", "ok");
+      const nombreUsuario = loginUser === "20.1821.180-0" ? "Álvaro" : "Mayra";
+      sessionStorage.setItem("lab_usuario", nombreUsuario);
       setLogueado(true);
       setLoginError("");
     } else {
@@ -466,7 +485,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["notas","💬 Notas"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["capital","💰 Capital"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["notas","💬 Notas"],["informe","📄 Informe"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1459,6 +1478,141 @@ export default function App() {
             ))}
           </div>
         )}
+
+        {/* ════ INFORME MENSUAL ════ */}
+        {tab === "informe" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+          const tMes = trabajos.filter(t=>t.mes===filtroMes);
+          const gMes = gastos.filter(g=>g.mes===filtroMes);
+          const fMes = facturas.filter(f=>f.mes===filtroMes);
+          const totalIng = tMes.reduce((s,t)=>s+Number(t.valor),0);
+          const totalCobrado = tMes.filter(t=>["PAGADO","FACTURADO"].includes(t.estado_pago)).reduce((s,t)=>s+Number(t.valor),0);
+          const totalGas = gMes.reduce((s,g)=>s+Number(g.valor_total||0),0);
+          const totalGasFijo = gMes.filter(g=>g.tipo_gasto==="Fijo").reduce((s,g)=>s+Number(g.valor_total||0),0);
+          const totalGasVar = gMes.filter(g=>g.tipo_gasto==="Variable").reduce((s,g)=>s+Number(g.valor_total||0),0);
+          const totalGasOtro = gMes.filter(g=>g.tipo_gasto==="Otro").reduce((s,g)=>s+Number(g.valor_total||0),0);
+          const resultado = totalCobrado - totalGas;
+
+          const imprimir = () => {
+            const ventana = window.open("","_blank");
+            ventana.document.write(`
+              <html><head><title>Informe ${mesLabel(filtroMes)}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 30px; color: #1a1a1a; max-width: 800px; margin: 0 auto; }
+                h1 { color: #0891b2; border-bottom: 2px solid #0891b2; padding-bottom: 10px; }
+                h2 { color: #374151; margin-top: 24px; font-size: 16px; border-left: 4px solid #0891b2; padding-left: 10px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+                th { background: #f3f4f6; padding: 8px; text-align: left; border: 1px solid #e5e7eb; }
+                td { padding: 7px 8px; border: 1px solid #e5e7eb; }
+                tr:nth-child(even) { background: #f9fafb; }
+                .kpi { display: inline-block; background: #f3f4f6; border-radius: 8px; padding: 12px 20px; margin: 8px 8px 8px 0; min-width: 150px; }
+                .kpi-label { font-size: 11px; color: #6b7280; }
+                .kpi-value { font-size: 20px; font-weight: bold; color: #0891b2; }
+                .resultado { font-size: 22px; font-weight: bold; color: ${resultado>=0?"#059669":"#dc2626"}; }
+                .footer { margin-top: 40px; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+                @media print { body { padding: 15px; } }
+              </style></head><body>
+              <h1>🦷 Laboratorio Dental — Informe Mensual</h1>
+              <p style="color:#6b7280;margin-top:-8px">${mesLabel(filtroMes)} · Generado el ${new Date().toLocaleDateString("es-CL")}</p>
+              
+              <h2>Resumen General</h2>
+              <div>
+                <div class="kpi"><div class="kpi-label">Total trabajos</div><div class="kpi-value">${fmtCLP(totalIng)}</div></div>
+                <div class="kpi"><div class="kpi-label">Cobrado/Facturado</div><div class="kpi-value">${fmtCLP(totalCobrado)}</div></div>
+                <div class="kpi"><div class="kpi-label">Total gastos</div><div class="kpi-value" style="color:#dc2626">${fmtCLP(totalGas)}</div></div>
+              </div>
+              <p style="margin-top:16px">Resultado neto del mes: <span class="resultado">${fmtCLP(resultado)}</span></p>
+
+              <h2>Detalle de Gastos</h2>
+              <p style="font-size:13px;color:#6b7280">Fijos: ${fmtCLP(totalGasFijo)} · Variables: ${fmtCLP(totalGasVar)} · Otros: ${fmtCLP(totalGasOtro)}</p>
+              <table>
+                <tr><th>Descripción</th><th>Tipo</th><th>Categoría</th><th>Cantidad</th><th>Total</th></tr>
+                ${gMes.map(g=>`<tr><td>${g.descripcion}</td><td>${g.tipo_gasto||"Variable"}</td><td>${g.categoria}</td><td>${g.cantidad} ${g.medida}</td><td>${fmtCLP(g.valor_total||0)}</td></tr>`).join("")}
+                ${gMes.length===0?"<tr><td colspan='5' style='text-align:center;color:#9ca3af'>Sin gastos registrados</td></tr>":""}
+              </table>
+
+              <h2>Trabajos del Mes (${tMes.length})</h2>
+              <table>
+                <tr><th>Tipo</th><th>Área</th><th>Clínica</th><th>Paciente</th><th>Estado</th><th>Valor</th></tr>
+                ${tMes.map(t=>`<tr><td>${t.tipo}</td><td>${t.area}</td><td>${t.clinica}</td><td>${t.paciente||"-"}</td><td>${t.estado_pago}</td><td>${fmtCLP(t.valor)}</td></tr>`).join("")}
+              </table>
+
+              ${fMes.length>0?`
+              <h2>Facturas del Mes</h2>
+              <table>
+                <tr><th>N°</th><th>Tipo</th><th>Fecha</th><th>Quien</th><th>Estado</th><th>Monto</th></tr>
+                ${fMes.map(f=>`<tr><td>${f.nro_factura||"-"}</td><td>${f.tipo}</td><td>${f.fecha||"-"}</td><td>${f.quien}</td><td>${f.estado}</td><td>${fmtCLP(f.monto||0)}</td></tr>`).join("")}
+              </table>`:""}
+
+              <div class="footer">Laboratorio Dental Dentis · Villarrica · Álvaro Jofre K. & Mayra</div>
+              </body></html>
+            `);
+            ventana.document.close();
+            ventana.print();
+          };
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:"12px", flexWrap:"wrap", justifyContent:"space-between" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                  <label style={{ fontSize:"11px", color:"#71717a" }}>Mes:</label>
+                  <select style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"8px 12px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"13px" }} value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}>
+                    {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                </div>
+                <button onClick={imprimir} style={{ background:"#22d3ee", color:"#09090b", padding:"10px 24px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }}>🖨️ Imprimir / Guardar PDF</button>
+              </div>
+
+              {/* Preview */}
+              <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"20px" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"4px" }}>🦷 Informe · {mesLabel(filtroMes)}</p>
+                <p style={{ fontSize:"12px", color:"#52525b", marginBottom:"16px" }}>Generado el {new Date().toLocaleDateString("es-CL")}</p>
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px", marginBottom:"16px" }}>
+                  {[
+                    { l:"Total trabajos", v:fmtCLP(totalIng), c:"#22d3ee" },
+                    { l:"Cobrado/Fact.", v:fmtCLP(totalCobrado), c:"#4ade80" },
+                    { l:"Total gastos", v:fmtCLP(totalGas), c:"#f87171" },
+                  ].map(k=>(
+                    <div key={k.l} style={{ background:"#09090b", borderRadius:"8px", padding:"12px" }}>
+                      <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"4px" }}>{k.l}</p>
+                      <p style={{ fontSize:"14px", fontWeight:700, color:k.c }}>{k.v}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background: resultado>=0?"rgba(20,83,45,0.3)":"rgba(127,29,29,0.3)", border:`1px solid ${resultado>=0?"#166534":"#991b1b"}`, borderRadius:"8px", padding:"14px", textAlign:"center", marginBottom:"16px" }}>
+                  <p style={{ fontSize:"12px", color:"#71717a", marginBottom:"4px" }}>Resultado neto del mes</p>
+                  <p style={{ fontSize:"28px", fontWeight:700, color: resultado>=0?"#4ade80":"#f87171" }}>{fmtCLP(resultado)}</p>
+                </div>
+
+                <div style={{ fontSize:"12px", color:"#52525b" }}>
+                  <p>📋 {tMes.length} trabajos · 💸 {gMes.length} gastos · 🧾 {fMes.length} facturas</p>
+                  <p style={{ marginTop:"4px" }}>Gastos: Fijos {fmtCLP(totalGasFijo)} · Variables {fmtCLP(totalGasVar)} · Otros {fmtCLP(totalGasOtro)}</p>
+                </div>
+              </div>
+
+              <p style={{ fontSize:"12px", color:"#52525b", textAlign:"center" }}>Toca "Imprimir / Guardar PDF" para obtener el informe completo con todos los detalles</p>
+
+              {/* Actividad reciente */}
+              {actividad.length > 0 && (
+                <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+                  <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#71717a", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>🔔 Actividad reciente</p>
+                  {[...actividad].reverse().slice(0,10).map(a=>(
+                    <div key={a.id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:"1px solid #27272a", fontSize:"12px" }}>
+                      <div>
+                        <span style={{ color: a.usuario==="Álvaro"?"#22d3ee":"#f472b6", fontWeight:700, marginRight:"6px" }}>{a.usuario}</span>
+                        <span style={{ color:"#d4d4d8" }}>{a.accion}</span>
+                        {a.detalle && <span style={{ color:"#52525b" }}> · {a.detalle}</span>}
+                      </div>
+                      <span style={{ color:"#3f3f46", fontSize:"11px", shrink:0, marginLeft:"8px" }}>{a.fecha}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
     </div>
