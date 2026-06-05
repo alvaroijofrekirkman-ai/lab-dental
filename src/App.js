@@ -129,10 +129,9 @@ const PILL_CLASS = {
   "NO FACTURADO": "pill-nofact",
   "EN PROCESO": "pill-proc",
   "PENDIENTE": "pill-pend",
-  "FACTURAR": "pill-facturar",
 };
 
-const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "" };
+const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "", nro_ot: "" };
 const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
 
@@ -226,8 +225,7 @@ export default function App() {
   const [busqArancel, setBusqArancel] = useState("");
   const [showSugerencias, setShowSugerencias] = useState(false);
   const [catSeleccionada, setCatSeleccionada] = useState("Todas");
-  const [busqConvenio, setBusqConvenio] = useState("");
-  const [catConvenio, setCatConvenio] = useState("Todas");
+  const [fichaClinicaId, setFichaClinicaId] = useState(null);
 
 
   // Registro de actividad
@@ -242,7 +240,7 @@ export default function App() {
   const [capitalInput, setCapitalInput] = useState("1000000");
 
   const [showFormT, setShowFormT] = useState(false); const [editandoT, setEditandoT] = useState(null); const [formT, setFormT] = useState(emptyT);
-  const [showFormC, setShowFormC] = useState(false); const [editandoC, setEditandoC] = useState(null); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+  const [showFormC, setShowFormC] = useState(false); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   const [showFormG, setShowFormG] = useState(false); const [editandoG, setEditandoG] = useState(null); const [formG, setFormG] = useState(emptyG);
   const [showFormI, setShowFormI] = useState(false); const [editandoI, setEditandoI] = useState(null); const [formI, setFormI] = useState(emptyI);
 
@@ -323,7 +321,9 @@ export default function App() {
   const stockBajo = useMemo(() => inventario.filter(i => i.cantidad <= i.cantidad_minima), [inventario]);
 
   const saveT = () => {
-    let next = editandoT !== null ? trabajos.map(t => t.id === editandoT ? { ...formT, id: editandoT } : t) : [...trabajos, { ...formT, id: Math.max(0, ...trabajos.map(x => x.id)) + 1 }];
+    const nextId = Math.max(0, ...trabajos.map(x => x.id)) + 1;
+    const nextOt = editandoT !== null ? formT.nro_ot : `OT-${String(nextId).padStart(3,"0")}`;
+    let next = editandoT !== null ? trabajos.map(t => t.id === editandoT ? { ...formT, id: editandoT } : t) : [...trabajos, { ...formT, id: nextId, nro_ot: nextOt }];
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario);
     setShowFormT(false); setEditandoT(null); setFormT(emptyT);
   };
@@ -331,14 +331,10 @@ export default function App() {
   const delT = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = trabajos.filter(t => t.id !== id); setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario); };
 
   const saveC = () => {
-    let next = editandoC !== null
-      ? clinicas.map(x => x.id === editandoC ? { ...formC, id: editandoC } : x)
-      : [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
+    const next = [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
     setClinicas(next); guardarTodo(trabajos, next, gastos, inventario);
-    setShowFormC(false); setEditandoC(null); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+    setShowFormC(false); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   };
-  const editC = (c) => { setFormC({ ...c }); setEditandoC(c.id); setShowFormC(true); };
-  const delC = (id) => { if (!window.confirm("¿Eliminar clínica?")) return; const next = clinicas.filter(c => c.id !== id); setClinicas(next); guardarTodo(trabajos, next, gastos, inventario); };
 
   const saveG = () => {
     const vt = formG.valor_total || (Number(formG.cantidad) * Number(formG.valor_unit));
@@ -385,8 +381,8 @@ export default function App() {
     const next = trabajos.map(t => {
       if (t.id !== trabajoId) return t;
       const nuevoEntregado = !t.entregado;
-      // Si se marca entregado y estaba EN PROCESO o NO FACTURADO → pasa a FACTURAR
-      const nuevoEstado = nuevoEntregado && ["EN PROCESO","NO FACTURADO"].includes(t.estado_pago) ? "FACTURAR" : t.estado_pago;
+      // Si se marca entregado y estaba EN PROCESO → pasa a NO FACTURADO
+      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "NO FACTURADO" : t.estado_pago;
       return { ...t, entregado: nuevoEntregado, estado_pago: nuevoEstado };
     });
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
@@ -520,8 +516,6 @@ export default function App() {
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
-        .pill-facturar { background: rgba(124,45,212,0.3); color: #c084fc; border-color: #7c3aed; }
-        .pill-entregado { background: rgba(20,83,45,0.5); color: #4ade80; border-color: #166534; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
         .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
@@ -546,7 +540,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -658,7 +652,6 @@ export default function App() {
                     <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
                       <span style={{ fontSize:"11px", background:"#27272a", color:"#71717a", padding:"2px 8px", borderRadius:"4px" }}>{t.area}</span>
                       <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>{t.estado_pago}</span>
-                      {t.entregado && <span className="pill pill-entregado">✅ ENTREGADO</span>}
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
                     <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{t.tipo}</p>
@@ -852,30 +845,21 @@ export default function App() {
             </div>
             {clinicas.map(c=>{
               const tCli=trabajos.filter(t=>t.clinica===c.nombre);
-              const esConvenio = c.nombre === "MAODENTAL";
               return (
-                <div key={c.id} className="card" style={{ padding:"16px", borderColor: esConvenio?"#a855f7":"#3f3f46", borderWidth: esConvenio?"2px":"1px", background: esConvenio?"#120a1e":"#18181b" }}>
+                <div key={c.id} className="card" style={{ padding:"16px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
-                        <p style={{ fontWeight:700, color: esConvenio?"#e879f9":"#fff" }}>{c.nombre}</p>
+                    <div>
+                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
+                        <p style={{ fontWeight:700, color:"#fff" }}>{c.nombre}</p>
                         <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
-                        {esConvenio && <span style={{ fontSize:"11px", background:"rgba(168,85,247,0.2)", color:"#c084fc", border:"1px solid #7c3aed", padding:"2px 8px", borderRadius:"20px", fontWeight:700 }}>🤝 CONVENIO</span>}
                       </div>
                       <p style={{ fontSize:"12px", color:"#71717a" }}>{c.localidad} · {c.doctor}</p>
                       {c.telefono && <p style={{ fontSize:"12px", color:"#52525b" }}>📞 {c.telefono}</p>}
                       {c.direccion && <p style={{ fontSize:"11px", color:"#3f3f46" }}>{c.direccion}</p>}
-                      {c.email && <p style={{ fontSize:"11px", color:"#3f3f46" }}>✉ {c.email}</p>}
                     </div>
-                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
-                      <div style={{ textAlign:"right" }}>
-                        <p style={{ color: esConvenio?"#e879f9":"#22d3ee", fontWeight:700 }}>{fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
-                        <p style={{ fontSize:"12px", color:"#52525b" }}>{tCli.length} trabajos</p>
-                      </div>
-                      <div style={{ display:"flex", gap:"4px" }}>
-                        <button className="bsm" onClick={()=>editC(c)}>✏️</button>
-                        <button className="bsm" style={{ color:"#f87171" }} onClick={()=>delC(c.id)}>🗑</button>
-                      </div>
+                    <div style={{ textAlign:"right" }}>
+                      <p style={{ color:"#22d3ee", fontWeight:700 }}>{fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
+                      <p style={{ fontSize:"12px", color:"#52525b" }}>{tCli.length} trabajos</p>
                     </div>
                   </div>
                 </div>
@@ -884,13 +868,13 @@ export default function App() {
             {showFormC && (
               <div className="overlay">
                 <div className="modal">
-                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>{editandoC ? "Editar Clínica" : "Nueva Clínica"}</p>
+                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>Nueva Clínica</p>
                   {[["Nombre","nombre"],["Localidad","localidad"],["Doctor/a","doctor"],["Teléfono","telefono"],["Dirección","direccion"],["Email","email"]].map(([lb,k])=>(
                     <div key={k} style={{ marginBottom:"12px" }}><label className="lbl">{lb}</label><input className="inp" value={formC[k]} onChange={e=>setFormC(f=>({...f,[k]:e.target.value}))}/></div>
                   ))}
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Estado</label><select className="inp" value={formC.estado} onChange={e=>setFormC(f=>({...f,estado:e.target.value}))}><option>PROSPECTO</option><option>CLIENTE</option><option>INACTIVO</option></select></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
-                    <button className="btng" onClick={()=>{setShowFormC(false);setEditandoC(null);}}>Cancelar</button>
+                    <button className="btng" onClick={()=>setShowFormC(false)}>Cancelar</button>
                     <button className="btn1" onClick={saveC}>Guardar</button>
                   </div>
                 </div>
@@ -1710,127 +1694,6 @@ export default function App() {
               ))}
 
               <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>* Bandas no incluidas · Urgencias tienen cargo adicional</p>
-            </div>
-          );
-        })()}
-
-
-        {/* ════ CONVENIO ════ */}
-        {tab === "convenio" && (() => {
-          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
-
-          const CONVENIO = [
-            {
-              categoria: "🦷 Aparatos de Ortodoncia",
-              color: "#1e3a5f",
-              border: "#3b82f6",
-              items: [
-                { nombre: "Placa de Expansión o Schwartz", precio: 36000 },
-                { nombre: "Placa de Contención (acetato)", precio: 32000 },
-                { nombre: "Disyuntor Mc.Namara (sin bandas ni ganchos)", precio: 57000 },
-                { nombre: "Disyuntor Hyrax con alambre contorneado (sin bandas)", precio: 58000 },
-                { nombre: "Botón de Nance (sin bandas)", precio: 38000 },
-                { nombre: "Mantenedor de espacio (sin bandas)", precio: 27000 },
-                { nombre: "Placa de Contención Hawley", precio: 38000 },
-                { nombre: "Aparato de Mauricio (con tornillo)", precio: 42000 },
-                { nombre: "Contención de Begg", precio: 46000 },
-                { nombre: "Disyuntor Hass", precio: 55000 },
-                { nombre: "Barra Lingual de Nance", precio: 37000 },
-                { nombre: "Quad Helix", precio: 46000 },
-                { nombre: "Barra Transpalatina (BTP o TPA)", precio: 35000 },
-                { nombre: "Bionator 1 (estándar)", precio: 85000 },
-                { nombre: "Aparato Monoblock de Mauricio", precio: 44000 },
-              ]
-            },
-            {
-              categoria: "🦷 Prótesis Removibles",
-              color: "#14532d",
-              border: "#22c55e",
-              items: [
-                { nombre: "Prótesis parcial", precio: 52000 },
-                { nombre: "Prótesis total", precio: 52000 },
-                { nombre: "Prótesis con base metálica", precio: 92000 },
-                { nombre: "Prótesis inmediata", precio: 52000 },
-                { nombre: "Prótesis cosmética (hasta 3 dientes)", precio: 35000 },
-                { nombre: "Prótesis flexibles", precio: 85000 },
-                { nombre: "Rebasados total o parcial", precio: 28000 },
-                { nombre: "Reparación simple", precio: 22000 },
-                { nombre: "Reparación compleja", precio: 22000 },
-              ]
-            },
-            {
-              categoria: "😁 Planos",
-              color: "#4c1d95",
-              border: "#a855f7",
-              items: [
-                { nombre: "Plano de relajación acrílico", precio: 45000 },
-                { nombre: "Plano Estampado", precio: 30000 },
-                { nombre: "Plano relajación blando-duro", precio: 48000 },
-                { nombre: "Cubetillas de blanqueamiento", precio: 20000 },
-                { nombre: "Protector bucal simple", precio: 35000 },
-                { nombre: "Protector bucal doble", precio: 50000 },
-                { nombre: "Dientes Provisorios", precio: 12000 },
-              ]
-            },
-            {
-              categoria: "🖨️ Impresión 3D",
-              color: "#713f12",
-              border: "#f59e0b",
-              items: [
-                { nombre: "1 Arcada", precio: 9000 },
-                { nombre: "2 Arcadas", precio: 10000 },
-                { nombre: "Planos de relajación (3D)", precio: 65000 },
-              ]
-            },
-          ];
-
-          const convenioFiltrado = CONVENIO.map(cat => ({
-            ...cat,
-            items: cat.items.filter(item =>
-              busqConvenio === "" || item.nombre.toLowerCase().includes(busqConvenio.toLowerCase())
-            )
-          })).filter(cat =>
-            (catConvenio === "Todas" || cat.categoria === catConvenio) &&
-            cat.items.length > 0
-          );
-
-          return (
-            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
-              <div style={{ background:"linear-gradient(135deg,#1e3a5f,#14532d)", border:"1px solid #22d3ee", borderRadius:"12px", padding:"16px" }}>
-                <p className="tf" style={{ fontSize:"16px", fontWeight:800, color:"#22d3ee", marginBottom:"4px" }}>🤝 Arancel Convenio 2026</p>
-                <p style={{ fontSize:"12px", color:"#a1a1aa", lineHeight:"1.5" }}>Precios especiales para clínicas con <strong style={{color:"#4ade80"}}>mínimo 10 trabajos mensuales</strong>. El área fija no tiene convenio pero sus trabajos cuentan para el flujo. Válido solo año 2026 · Cupos ilimitados.</p>
-              </div>
-
-              <input
-                style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }}
-                placeholder="🔍 Buscar trabajo..."
-                value={busqConvenio}
-                onChange={e=>setBusqConvenio(e.target.value)}
-              />
-
-              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
-                {["Todas",...CONVENIO.map(c=>c.categoria)].map(cat=>(
-                  <button key={cat} onClick={()=>setCatConvenio(cat)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"1px solid", fontFamily:"monospace", background: catConvenio===cat?"#4ade80":"transparent", color: catConvenio===cat?"#09090b":"#71717a", borderColor: catConvenio===cat?"#4ade80":"#3f3f46" }}>
-                    {cat.length > 25 ? cat.slice(0,25)+"..." : cat}
-                  </button>
-                ))}
-              </div>
-
-              {convenioFiltrado.map(cat=>(
-                <div key={cat.categoria} style={{ background:"#18181b", border:`1px solid ${cat.border}`, borderRadius:"10px", overflow:"hidden" }}>
-                  <div style={{ background:cat.color, padding:"10px 16px" }}>
-                    <p className="tf" style={{ fontSize:"13px", fontWeight:700, color:"#fff" }}>{cat.categoria}</p>
-                  </div>
-                  {cat.items.map((item, idx)=>(
-                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 16px", borderBottom: idx<cat.items.length-1?"1px solid #27272a":"none", gap:"12px" }}>
-                      <p style={{ color:"#d4d4d8", fontSize:"13px", flex:1 }}>{item.nombre}</p>
-                      <p style={{ color:"#4ade80", fontWeight:700, fontSize:"15px", whiteSpace:"nowrap" }}>{fmtCLP(item.precio)}</p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>Contacto: +569 91315887 · laboratoriodental@dentis-lab.com</p>
             </div>
           );
         })()}
