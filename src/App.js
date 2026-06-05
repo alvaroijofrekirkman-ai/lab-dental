@@ -225,6 +225,8 @@ export default function App() {
   const [busqArancel, setBusqArancel] = useState("");
   const [showSugerencias, setShowSugerencias] = useState(false);
   const [catSeleccionada, setCatSeleccionada] = useState("Todas");
+  const [busqConvenio, setBusqConvenio] = useState("");
+  const [catConvenio, setCatConvenio] = useState("Todas");
 
 
   // Registro de actividad
@@ -537,7 +539,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1691,6 +1693,127 @@ export default function App() {
               ))}
 
               <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>* Bandas no incluidas · Urgencias tienen cargo adicional</p>
+            </div>
+          );
+        })()}
+
+
+        {/* ════ CONVENIO ════ */}
+        {tab === "convenio" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+
+          const CONVENIO = [
+            {
+              categoria: "🦷 Aparatos de Ortodoncia",
+              color: "#1e3a5f",
+              border: "#3b82f6",
+              items: [
+                { nombre: "Placa de Expansión o Schwartz", precio: 36000 },
+                { nombre: "Placa de Contención (acetato)", precio: 32000 },
+                { nombre: "Disyuntor Mc.Namara (sin bandas ni ganchos)", precio: 57000 },
+                { nombre: "Disyuntor Hyrax con alambre contorneado (sin bandas)", precio: 58000 },
+                { nombre: "Botón de Nance (sin bandas)", precio: 38000 },
+                { nombre: "Mantenedor de espacio (sin bandas)", precio: 27000 },
+                { nombre: "Placa de Contención Hawley", precio: 38000 },
+                { nombre: "Aparato de Mauricio (con tornillo)", precio: 42000 },
+                { nombre: "Contención de Begg", precio: 46000 },
+                { nombre: "Disyuntor Hass", precio: 55000 },
+                { nombre: "Barra Lingual de Nance", precio: 37000 },
+                { nombre: "Quad Helix", precio: 46000 },
+                { nombre: "Barra Transpalatina (BTP o TPA)", precio: 35000 },
+                { nombre: "Bionator 1 (estándar)", precio: 85000 },
+                { nombre: "Aparato Monoblock de Mauricio", precio: 44000 },
+              ]
+            },
+            {
+              categoria: "🦷 Prótesis Removibles",
+              color: "#14532d",
+              border: "#22c55e",
+              items: [
+                { nombre: "Prótesis parcial", precio: 52000 },
+                { nombre: "Prótesis total", precio: 52000 },
+                { nombre: "Prótesis con base metálica", precio: 92000 },
+                { nombre: "Prótesis inmediata", precio: 52000 },
+                { nombre: "Prótesis cosmética (hasta 3 dientes)", precio: 35000 },
+                { nombre: "Prótesis flexibles", precio: 85000 },
+                { nombre: "Rebasados total o parcial", precio: 28000 },
+                { nombre: "Reparación simple", precio: 22000 },
+                { nombre: "Reparación compleja", precio: 22000 },
+              ]
+            },
+            {
+              categoria: "😁 Planos",
+              color: "#4c1d95",
+              border: "#a855f7",
+              items: [
+                { nombre: "Plano de relajación acrílico", precio: 45000 },
+                { nombre: "Plano Estampado", precio: 30000 },
+                { nombre: "Plano relajación blando-duro", precio: 48000 },
+                { nombre: "Cubetillas de blanqueamiento", precio: 20000 },
+                { nombre: "Protector bucal simple", precio: 35000 },
+                { nombre: "Protector bucal doble", precio: 50000 },
+                { nombre: "Dientes Provisorios", precio: 12000 },
+              ]
+            },
+            {
+              categoria: "🖨️ Impresión 3D",
+              color: "#713f12",
+              border: "#f59e0b",
+              items: [
+                { nombre: "1 Arcada", precio: 9000 },
+                { nombre: "2 Arcadas", precio: 10000 },
+                { nombre: "Planos de relajación (3D)", precio: 65000 },
+              ]
+            },
+          ];
+
+          const convenioFiltrado = CONVENIO.map(cat => ({
+            ...cat,
+            items: cat.items.filter(item =>
+              busqConvenio === "" || item.nombre.toLowerCase().includes(busqConvenio.toLowerCase())
+            )
+          })).filter(cat =>
+            (catConvenio === "Todas" || cat.categoria === catConvenio) &&
+            cat.items.length > 0
+          );
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              <div style={{ background:"linear-gradient(135deg,#1e3a5f,#14532d)", border:"1px solid #22d3ee", borderRadius:"12px", padding:"16px" }}>
+                <p className="tf" style={{ fontSize:"16px", fontWeight:800, color:"#22d3ee", marginBottom:"4px" }}>🤝 Arancel Convenio 2026</p>
+                <p style={{ fontSize:"12px", color:"#a1a1aa", lineHeight:"1.5" }}>Precios especiales para clínicas con <strong style={{color:"#4ade80"}}>mínimo 10 trabajos mensuales</strong>. El área fija no tiene convenio pero sus trabajos cuentan para el flujo. Válido solo año 2026 · Cupos ilimitados.</p>
+              </div>
+
+              <input
+                style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }}
+                placeholder="🔍 Buscar trabajo..."
+                value={busqConvenio}
+                onChange={e=>setBusqConvenio(e.target.value)}
+              />
+
+              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
+                {["Todas",...CONVENIO.map(c=>c.categoria)].map(cat=>(
+                  <button key={cat} onClick={()=>setCatConvenio(cat)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"1px solid", fontFamily:"monospace", background: catConvenio===cat?"#4ade80":"transparent", color: catConvenio===cat?"#09090b":"#71717a", borderColor: catConvenio===cat?"#4ade80":"#3f3f46" }}>
+                    {cat.length > 25 ? cat.slice(0,25)+"..." : cat}
+                  </button>
+                ))}
+              </div>
+
+              {convenioFiltrado.map(cat=>(
+                <div key={cat.categoria} style={{ background:"#18181b", border:`1px solid ${cat.border}`, borderRadius:"10px", overflow:"hidden" }}>
+                  <div style={{ background:cat.color, padding:"10px 16px" }}>
+                    <p className="tf" style={{ fontSize:"13px", fontWeight:700, color:"#fff" }}>{cat.categoria}</p>
+                  </div>
+                  {cat.items.map((item, idx)=>(
+                    <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 16px", borderBottom: idx<cat.items.length-1?"1px solid #27272a":"none", gap:"12px" }}>
+                      <p style={{ color:"#d4d4d8", fontSize:"13px", flex:1 }}>{item.nombre}</p>
+                      <p style={{ color:"#4ade80", fontWeight:700, fontSize:"15px", whiteSpace:"nowrap" }}>{fmtCLP(item.precio)}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>Contacto: +569 91315887 · laboratoriodental@dentis-lab.com</p>
             </div>
           );
         })()}
