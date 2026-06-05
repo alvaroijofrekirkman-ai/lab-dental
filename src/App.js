@@ -129,6 +129,7 @@ const PILL_CLASS = {
   "NO FACTURADO": "pill-nofact",
   "EN PROCESO": "pill-proc",
   "PENDIENTE": "pill-pend",
+  "FACTURAR": "pill-facturar",
 };
 
 const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "" };
@@ -380,8 +381,8 @@ export default function App() {
     const next = trabajos.map(t => {
       if (t.id !== trabajoId) return t;
       const nuevoEntregado = !t.entregado;
-      // Si se marca entregado y estaba EN PROCESO → pasa a NO FACTURADO
-      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "NO FACTURADO" : t.estado_pago;
+      // Si se marca entregado y estaba EN PROCESO o NO FACTURADO → pasa a FACTURAR
+      const nuevoEstado = nuevoEntregado && ["EN PROCESO","NO FACTURADO"].includes(t.estado_pago) ? "FACTURAR" : t.estado_pago;
       return { ...t, entregado: nuevoEntregado, estado_pago: nuevoEstado };
     });
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
@@ -515,6 +516,8 @@ export default function App() {
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
+        .pill-facturar { background: rgba(124,45,212,0.3); color: #c084fc; border-color: #7c3aed; }
+        .pill-entregado { background: rgba(20,83,45,0.5); color: #4ade80; border-color: #166534; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
         .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
@@ -651,6 +654,7 @@ export default function App() {
                     <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
                       <span style={{ fontSize:"11px", background:"#27272a", color:"#71717a", padding:"2px 8px", borderRadius:"4px" }}>{t.area}</span>
                       <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>{t.estado_pago}</span>
+                      {t.entregado && <span className="pill pill-entregado">✅ ENTREGADO</span>}
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
                     <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{t.tipo}</p>
