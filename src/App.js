@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 
 // ── CREDENCIALES ─────────────────────────────────────────────────
 const USUARIOS = [
-  { usuario: "20.182.180-0", clave: "odnoliub1234" },
+  { usuario: "20.1821.180-0", clave: "odnoliub1234" },
   { usuario: "15.077.122-6", clave: "marley1234" },
 ];
 
@@ -15,7 +15,11 @@ async function cargarDatos() {
     const r = await fetch(API_URL);
     const json = await r.json();
     if (json.ok && json.data && json.data !== "{}") {
-      return JSON.parse(json.data);
+      let raw = json.data;
+      // Si tiene timestamp al inicio (ej: "2026-06-05T...\t{...}"), extraer solo el JSON
+      const idx = raw.indexOf("{");
+      if (idx > 0) raw = raw.substring(idx);
+      return JSON.parse(raw);
     }
   } catch (e) { console.error("Error cargando:", e); }
   return null;
