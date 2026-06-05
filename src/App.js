@@ -375,7 +375,13 @@ export default function App() {
 
   // ── TOGGLE ENTREGA TRABAJO ──
   const toggleEntrega = (trabajoId) => {
-    const next = trabajos.map(t => t.id === trabajoId ? { ...t, entregado: !t.entregado } : t);
+    const next = trabajos.map(t => {
+      if (t.id !== trabajoId) return t;
+      const nuevoEntregado = !t.entregado;
+      // Si se marca entregado y estaba EN PROCESO → pasa a NO FACTURADO
+      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "NO FACTURADO" : t.estado_pago;
+      return { ...t, entregado: nuevoEntregado, estado_pago: nuevoEstado };
+    });
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
   };
 
