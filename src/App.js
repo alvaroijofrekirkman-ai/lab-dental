@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 
 // ── CREDENCIALES ─────────────────────────────────────────────────
 const USUARIOS = [
-  { usuario: "20.1821.180-0", clave: "odnoliub1234" },
+  { usuario: "20.182.180-0", clave: "odnoliub1234" },
   { usuario: "15.077.122-6", clave: "marley1234" },
 ];
 
