@@ -116,6 +116,7 @@ const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
 const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "PENDIENTE"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
+const CLINICAS_CONVENIO = ["MAODENTAL"]; // clínicas con convenio
 
 const fmt = (n) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
 const mesLabel = (v) => MESES.find(m => m.value === v)?.label || v;
@@ -616,7 +617,7 @@ export default function App() {
             </div>
             {trabajosFiltrados.length===0 && <div className="card" style={{ padding:"40px", textAlign:"center", color:"#52525b", fontSize:"14px" }}>Sin trabajos este mes</div>}
             {trabajosFiltrados.map(t => {
-              const esConv = clinicas.find(c=>c.nombre===t.clinica)?.convenio;
+              const esConv = CLINICAS_CONVENIO.includes(t.clinica);
               return (
               <div key={t.id} className={esConv?"card-convenio":"card"} style={{ padding:"16px" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
@@ -820,17 +821,17 @@ export default function App() {
             {clinicas.map(c=>{
               const tCli=trabajos.filter(t=>t.clinica===c.nombre);
               return (
-                <div key={c.id} className={c.convenio?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
-                  {c.convenio && <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"5px 16px", display:"flex", alignItems:"center", gap:"6px" }}>
+                <div key={c.id} className={CLINICAS_CONVENIO.includes(c.nombre)?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
+                  {CLINICAS_CONVENIO.includes(c.nombre) && <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"5px 16px", display:"flex", alignItems:"center", gap:"6px" }}>
                     <span style={{ fontSize:"11px", color:"#fef3c7", fontWeight:700, letterSpacing:"1px" }}>⭐ CLÍNICA CON CONVENIO</span>
                   </div>}
                   <div style={{ padding:"16px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
                     <div>
                       <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
-                        <p style={{ fontWeight:700, color:c.convenio?"#fbbf24":"#fff", fontSize:c.convenio?"15px":"14px" }}>{c.nombre}</p>
+                        <p style={{ fontWeight:700, color:CLINICAS_CONVENIO.includes(c.nombre)?"#fbbf24":"#fff", fontSize:CLINICAS_CONVENIO.includes(c.nombre)?"15px":"14px" }}>{c.nombre}</p>
                         <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
-                        {c.convenio && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
+                        {CLINICAS_CONVENIO.includes(c.nombre) && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
                       </div>
                       <p style={{ fontSize:"12px", color:"#71717a" }}>{c.localidad} · {c.doctor}</p>
                       {c.telefono && <p style={{ fontSize:"12px", color:"#52525b" }}>📞 {c.telefono}</p>}
