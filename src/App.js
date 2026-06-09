@@ -565,16 +565,21 @@ export default function App() {
     MESES.forEach(m => {
       const ts = trabajos.filter(t => t.mes === m.value);
       const gs = gastos.filter(g => g.mes === m.value);
+      const fs = facturas.filter(f => f.mes === m.value && f.tipo === "compra");
+      const totalGastos = gs.reduce((s, g) => s + Number(g.valor_total || 0), 0);
+      const totalFacturasCompra = fs.reduce((s, f) => s + Number(f.monto || 0), 0);
       porMes[m.value] = {
         ingresos: ts.reduce((s, t) => s + Number(t.valor), 0),
         count: ts.length,
         pagado: ts.filter(t => ["PAGADO","FACTURADO"].includes(t.estado_pago)).reduce((s, t) => s + Number(t.valor), 0),
         pendiente: ts.filter(t => ["EN PROCESO","NO FACTURADO","PENDIENTE"].includes(t.estado_pago)).reduce((s, t) => s + Number(t.valor), 0),
-        gastos: gs.reduce((s, g) => s + Number(g.valor_total || 0), 0),
+        gastos: totalGastos + totalFacturasCompra,
+        gastosSolo: totalGastos,
+        facturasCompra: totalFacturasCompra,
       };
     });
     return { porMes, mesFiltrado: trabajos.filter(t => t.mes === filtroMes) };
-  }, [trabajos, gastos, filtroMes]);
+  }, [trabajos, gastos, facturas, filtroMes]);
 
   const trabajosFiltrados = useMemo(() => trabajos.filter(t => t.mes === filtroMes).filter(t => {
     if (!busqueda) return true;
@@ -1022,10 +1027,34 @@ export default function App() {
               <select className="inp" style={{ width:"180px" }} value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}>{MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select>
               <button className="btn1" onClick={()=>{setFormG({...emptyG,mes:filtroMes});setEditandoG(null);setShowFormG(true);}}>+ Gasto</button>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-              <div className="card" style={{ padding:"16px" }}><p className="lbl">Total gastos {mesLabel(filtroMes)}</p><p style={{ fontSize:"18px", fontWeight:700, color:"#f87171" }}>{fmt(gastosFiltrados.reduce((s,g)=>s+Number(g.valor_total||0),0))}</p></div>
-              <div className="card" style={{ padding:"16px" }}><p className="lbl">Ítems</p><p style={{ fontSize:"18px", fontWeight:700, color:"#fff" }}>{gastosFiltrados.length}</p></div>
-            </div>
+            {(() => {
+              const factCompra = facturas.filter(f=>f.mes===filtroMes&&f.tipo==="compra");
+              const totalGastos = gastosFiltrados.reduce((s,g)=>s+Number(g.valor_total||0),0);
+              const totalFactComp = factCompra.reduce((s,f)=>s+Number(f.monto||0),0);
+              return (
+                <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+                    <div className="card" style={{ padding:"14px" }}>
+                      <p className="lbl">Gastos registrados</p>
+                      <p style={{ fontSize:"16px", fontWeight:700, color:"#f87171" }}>{fmt(totalGastos)}</p>
+                    </div>
+                    <div className="card" style={{ padding:"14px" }}>
+                      <p className="lbl">Facturas de compra</p>
+                      <p style={{ fontSize:"16px", fontWeight:700, color:"#f87171" }}>{fmt(totalFactComp)}</p>
+                    </div>
+                    <div className="card" style={{ padding:"14px", borderColor:"#7f1d1d" }}>
+                      <p className="lbl">Total gastos</p>
+                      <p style={{ fontSize:"16px", fontWeight:700, color:"#f87171" }}>{fmt(totalGastos+totalFactComp)}</p>
+                    </div>
+                  </div>
+                  {factCompra.length > 0 && (
+                    <div className="card" style={{ padding:"10px 16px", fontSize:"12px", color:"#71717a" }}>
+                      💡 Incluye {factCompra.length} factura{factCompra.length!==1?"s":""} de compra · {fmt(totalFactComp)}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {gastosFiltrados.length===0 && <div className="card" style={{ padding:"40px", textAlign:"center", color:"#52525b" }}>Sin gastos este mes</div>}
             {gastosFiltrados.map(g=>(
               <div key={g.id} className="card" style={{ padding:"16px" }}>
