@@ -484,6 +484,12 @@ export default function App() {
   const [busqArancel, setBusqArancel] = useState("");
   const [showSugerencias, setShowSugerencias] = useState(false);
   const [catSeleccionada, setCatSeleccionada] = useState("Todas");
+  // Cotizaciones
+  const [cotizaciones, setCotizaciones] = useState([]);
+  const [showFormCot, setShowFormCot] = useState(false);
+  const [editandoCot, setEditandoCot] = useState(null);
+  const [formCot, setFormCot] = useState({ clinica:"", doctor:"", fecha:"", validez:"30", observaciones:"", items:[] });
+  const [busqCotItem, setBusqCotItem] = useState("");
   const [fichaClinicaId, setFichaClinicaId] = useState(null);
   const [busquedaGlobal, setBusquedaGlobal] = useState("");
 
@@ -525,6 +531,7 @@ export default function App() {
         setMetas(d.metas || {});
         setDeudas(d.deudas || []);
         setActividad(d.actividad || []);
+        setCotizaciones(d.cotizaciones || []);
       } else {
         setTrabajos(TRABAJOS_INICIALES.map(t=>({...t, nro_ot: t.nro_ot||`OT-${String(t.id).padStart(3,"0")}`}))); setClinicas(CLINICAS_INICIALES);
         setGastos(GASTOS_INICIALES); setInventario(INVENTARIO_INICIAL);
@@ -557,6 +564,7 @@ export default function App() {
       metas: mt !== undefined ? mt : metas,
       deudas: deu !== undefined ? deu : deudas,
       actividad: act !== undefined ? act : actividad,
+      cotizaciones: cotizaciones,
     });
     setTimeout(() => setGuardando(false), 1200);
   }, [capitalBase, facturas, eventos, metas, deudas, actividad]);
@@ -664,6 +672,41 @@ export default function App() {
   };
 
 
+
+  // ── HANDLERS COTIZACIONES ──
+  const saveCot = (cot) => {
+    const nextId = Math.max(0, ...cotizaciones.map(x=>x.id), 0) + 1;
+    const nroCot = `COT-${String(nextId).padStart(3,"0")}`;
+    let next;
+    if (editandoCot !== null) {
+      next = cotizaciones.map(x => x.id === editandoCot ? { ...cot, id: editandoCot } : x);
+    } else {
+      next = [...cotizaciones, { ...cot, id: nextId, nro: nroCot, fecha_creacion: new Date().toLocaleDateString("es-CL"), estado: "PENDIENTE" }];
+    }
+    setCotizaciones(next);
+    const datos = { trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad, cotizaciones: next };
+    guardarDatos(datos);
+    setShowFormCot(false); setEditandoCot(null);
+    setFormCot({ clinica:"", doctor:"", fecha:"", validez:"30", observaciones:"", items:[] });
+  };
+  const delCot = (id) => {
+    if (!window.confirm("¿Eliminar cotización?")) return;
+    const next = cotizaciones.filter(c=>c.id!==id);
+    setCotizaciones(next);
+    const datos = { trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad, cotizaciones: next };
+    guardarDatos(datos);
+  };
+  const toggleEstadoCot = (id) => {
+    const estados = ["PENDIENTE","ACEPTADA","RECHAZADA"];
+    const next = cotizaciones.map(c => {
+      if (c.id !== id) return c;
+      const idx = estados.indexOf(c.estado);
+      return { ...c, estado: estados[(idx+1)%estados.length] };
+    });
+    setCotizaciones(next);
+    const datos = { trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad, cotizaciones: next };
+    guardarDatos(datos);
+  };
 
   // ── HANDLERS DEUDAS ──
   const saveD = () => {
@@ -848,7 +891,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -2083,6 +2126,337 @@ export default function App() {
               ))}
 
               <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center" }}>* Reparaciones y urgencias con cargo adicional · Bandas no incluidas</p>
+            </div>
+          );
+        })()}
+
+
+        {/* ════ COTIZADOR ════ */}
+        {tab === "cotizaciones" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+
+          const ARANCEL_COT = [
+            { nombre:"Placa de Expansión o Schwartz", precio:40000, area:"Ortodoncia" },
+            { nombre:"Placa de Contención (acetato)", precio:35000, area:"Ortodoncia" },
+            { nombre:"Disyuntor Mc.Namara", precio:60000, area:"Ortodoncia" },
+            { nombre:"Disyuntor Hyrax", precio:60000, area:"Ortodoncia" },
+            { nombre:"Botón de Nance", precio:40000, area:"Ortodoncia" },
+            { nombre:"Mantenedor de espacio", precio:30000, area:"Ortodoncia" },
+            { nombre:"Placa de Contención Hawley", precio:40000, area:"Ortodoncia" },
+            { nombre:"Aparato de Mauricio", precio:46000, area:"Ortodoncia" },
+            { nombre:"Contención de Begg", precio:46000, area:"Ortodoncia" },
+            { nombre:"Disyuntor Hass", precio:58000, area:"Ortodoncia" },
+            { nombre:"Barra Lingual de Nance", precio:40000, area:"Ortodoncia" },
+            { nombre:"Quad Helix", precio:50000, area:"Ortodoncia" },
+            { nombre:"Barra Transpalatina (TPA)", precio:38000, area:"Ortodoncia" },
+            { nombre:"Bionator 1", precio:88000, area:"Ortodoncia" },
+            { nombre:"Reparación simple ortodoncia", precio:15000, area:"Ortodoncia" },
+            { nombre:"Reparación compleja ortodoncia", precio:20000, area:"Ortodoncia" },
+            { nombre:"Prótesis parcial", precio:65000, area:"Removible" },
+            { nombre:"Prótesis total", precio:65000, area:"Removible" },
+            { nombre:"Prótesis con base metálica", precio:100000, area:"Removible" },
+            { nombre:"Prótesis flexible", precio:90000, area:"Removible" },
+            { nombre:"Rebasado total o parcial", precio:30000, area:"Removible" },
+            { nombre:"Reparación simple prótesis", precio:25000, area:"Removible" },
+            { nombre:"Plano de relajación acrílico", precio:50000, area:"Plano" },
+            { nombre:"Plano Estampado", precio:35000, area:"Plano" },
+            { nombre:"Cubetillas de blanqueamiento", precio:24000, area:"Plano" },
+            { nombre:"Protector bucal simple", precio:40000, area:"Plano" },
+            { nombre:"Protector bucal doble", precio:55000, area:"Plano" },
+            { nombre:"Impresión 3D 1 Arcada", precio:10000, area:"3D" },
+            { nombre:"Impresión 3D 2 Arcadas", precio:12000, area:"3D" },
+            { nombre:"Plano de relajación 3D", precio:70000, area:"3D" },
+            { nombre:"Corona periférica (resina)", precio:50000, area:"Fija" },
+            { nombre:"Carillas (resina)", precio:45000, area:"Fija" },
+            { nombre:"Incrustación onlay (resina)", precio:40000, area:"Fija" },
+            { nombre:"Incrustación inlay (resina)", precio:33000, area:"Fija" },
+            { nombre:"PFU Zirconio (por pieza)", precio:108000, area:"Fija" },
+            { nombre:"Corona Zirconio", precio:107000, area:"Fija" },
+            { nombre:"Carillas Zirconio", precio:100000, area:"Fija" },
+            { nombre:"Corona sobre implante Zirconio", precio:123000, area:"Fija" },
+            { nombre:"Corona E.MAX", precio:100000, area:"Fija" },
+            { nombre:"Carillas E.MAX", precio:95000, area:"Fija" },
+            { nombre:"Incrustación E.MAX", precio:94000, area:"Fija" },
+          ];
+
+          const ESTADO_COT = {
+            "PENDIENTE": { color:"#fcd34d", bg:"rgba(120,53,15,0.5)", border:"#78350f" },
+            "ACEPTADA":  { color:"#4ade80", bg:"rgba(6,78,59,0.5)",  border:"#065f46" },
+            "RECHAZADA": { color:"#f87171", bg:"rgba(127,29,29,0.5)", border:"#7f1d1d" },
+          };
+
+          const generarPDF = (cot) => {
+            const total = cot.items.reduce((s,i)=>s+i.precio*i.cantidad,0);
+            const fecha = cot.fecha || cot.fecha_creacion || new Date().toLocaleDateString("es-CL");
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background:#fff; color:#1a1a1a; padding:40px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px; padding-bottom:20px; border-bottom:3px solid #0ea5e9; }
+  .lab-name { font-size:24px; font-weight:900; color:#0ea5e9; letter-spacing:1px; }
+  .lab-sub { font-size:12px; color:#64748b; margin-top:4px; }
+  .lab-contact { font-size:11px; color:#64748b; margin-top:2px; }
+  .cot-info { text-align:right; }
+  .cot-num { font-size:18px; font-weight:700; color:#1e293b; }
+  .cot-fecha { font-size:12px; color:#64748b; margin-top:4px; }
+  .cot-validez { font-size:11px; color:#94a3b8; margin-top:2px; }
+  .destinatario { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:24px; }
+  .dest-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .dest-name { font-size:16px; font-weight:700; color:#1e293b; }
+  .dest-doctor { font-size:13px; color:#475569; margin-top:3px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+  thead tr { background:#0ea5e9; }
+  thead th { color:#fff; padding:10px 12px; font-size:11px; font-weight:700; text-align:left; text-transform:uppercase; letter-spacing:0.5px; }
+  thead th:last-child { text-align:right; }
+  thead th:nth-child(2), thead th:nth-child(3) { text-align:center; }
+  tbody tr { border-bottom:1px solid #f1f5f9; }
+  tbody tr:nth-child(even) { background:#f8fafc; }
+  tbody td { padding:10px 12px; font-size:13px; color:#1e293b; }
+  tbody td:nth-child(2) { text-align:center; color:#475569; }
+  tbody td:nth-child(3) { text-align:center; color:#475569; }
+  tbody td:last-child { text-align:right; font-weight:600; }
+  .area-badge { display:inline-block; background:#e0f2fe; color:#0369a1; font-size:10px; padding:1px 6px; border-radius:10px; margin-left:6px; }
+  .total-row { background:#0ea5e9 !important; }
+  .total-row td { color:#fff !important; font-weight:700 !important; font-size:15px !important; padding:12px !important; }
+  .obs { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:#92400e; }
+  .obs-label { font-weight:700; margin-bottom:4px; }
+  .footer { text-align:center; padding-top:20px; border-top:1px solid #e2e8f0; }
+  .footer p { font-size:11px; color:#94a3b8; margin-bottom:3px; }
+  .footer .gracias { font-size:13px; font-weight:700; color:#0ea5e9; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="lab-name">🦷 LABORATORIO DENTAL DENTIS</div>
+    <div class="lab-sub">Villarrica, Araucanía · Chile</div>
+    <div class="lab-contact">📞 +569 91315887</div>
+  </div>
+  <div class="cot-info">
+    <div class="cot-num">${cot.nro || "COT-001"}</div>
+    <div class="cot-fecha">Fecha: ${fecha}</div>
+    <div class="cot-validez">Válida por ${cot.validez || "30"} días</div>
+  </div>
+</div>
+
+<div class="destinatario">
+  <div class="dest-label">Cotización para</div>
+  <div class="dest-name">${cot.clinica || "—"}</div>
+  ${cot.doctor ? `<div class="dest-doctor">Dr./Dra. ${cot.doctor}</div>` : ""}
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Descripción del trabajo</th>
+      <th>Cant.</th>
+      <th>Precio unit.</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${cot.items.map(item=>`
+    <tr>
+      <td>${item.nombre}<span class="area-badge">${item.area}</span></td>
+      <td>${item.cantidad}</td>
+      <td>${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(item.precio)}</td>
+      <td>${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(item.precio*item.cantidad)}</td>
+    </tr>`).join("")}
+    <tr class="total-row">
+      <td colspan="3">TOTAL COTIZACIÓN</td>
+      <td>${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(total)}</td>
+    </tr>
+  </tbody>
+</table>
+
+${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observaciones:</div>${cot.observaciones}</div>` : ""}
+
+<div class="footer">
+  <p class="gracias">¡Gracias por confiar en Laboratorio Dental Dentis!</p>
+  <p>Los precios incluyen IVA · Bandas no incluidas · Urgencias con cargo adicional</p>
+  <p>Para consultas: +569 91315887 · Villarrica, Araucanía</p>
+</div>
+</body>
+</html>`;
+
+            const win = window.open("", "_blank");
+            win.document.write(htmlContent);
+            win.document.close();
+            setTimeout(() => { win.print(); }, 800);
+          };
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#fff" }}>📄 Cotizador</p>
+                  <p style={{ fontSize:"12px", color:"#71717a" }}>{cotizaciones.length} cotización{cotizaciones.length!==1?"es":""} guardada{cotizaciones.length!==1?"s":""}</p>
+                </div>
+                <button className="btn1" onClick={()=>{ setFormCot({ clinica:"", doctor:"", fecha:new Date().toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}), validez:"30", observaciones:"", items:[] }); setEditandoCot(null); setShowFormCot(true); }}>+ Nueva cotización</button>
+              </div>
+
+              {/* LISTA DE COTIZACIONES */}
+              {cotizaciones.length === 0 && (
+                <div className="card" style={{ padding:"40px", textAlign:"center", color:"#52525b" }}>
+                  <p style={{ fontSize:"32px", marginBottom:"8px" }}>📄</p>
+                  <p>Sin cotizaciones aún. Crea la primera.</p>
+                </div>
+              )}
+              {[...cotizaciones].reverse().map(cot => {
+                const total = cot.items.reduce((s,i)=>s+i.precio*i.cantidad, 0);
+                const est = ESTADO_COT[cot.estado] || ESTADO_COT["PENDIENTE"];
+                return (
+                  <div key={cot.id} className="card" style={{ padding:"16px", borderColor: est.border }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px", alignItems:"center" }}>
+                          <span style={{ fontSize:"11px", background:"#27272a", color:"#22d3ee", border:"1px solid #164e63", padding:"2px 8px", borderRadius:"4px", fontFamily:"monospace", fontWeight:700 }}>{cot.nro}</span>
+                          <span style={{ fontSize:"11px", background:est.bg, color:est.color, border:`1px solid ${est.border}`, padding:"2px 8px", borderRadius:"20px" }}>{cot.estado}</span>
+                          <span style={{ fontSize:"11px", color:"#52525b" }}>{cot.fecha_creacion}</span>
+                        </div>
+                        <p style={{ fontWeight:700, color:"#fff", fontSize:"14px" }}>{cot.clinica || "Sin clínica"}</p>
+                        {cot.doctor && <p style={{ fontSize:"12px", color:"#71717a" }}>Dr./Dra. {cot.doctor}</p>}
+                        <p style={{ fontSize:"12px", color:"#52525b", marginTop:"3px" }}>{cot.items.length} ítem{cot.items.length!==1?"s":""} · Válida {cot.validez} días</p>
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
+                        <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"18px" }}>{fmtCLP(total)}</p>
+                        <div style={{ display:"flex", gap:"4px", flexWrap:"wrap", justifyContent:"flex-end" }}>
+                          <button onClick={()=>generarPDF(cot)} style={{ fontSize:"11px", padding:"5px 12px", borderRadius:"6px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:"#22d3ee", color:"#09090b" }}>📄 PDF</button>
+                          <button onClick={()=>toggleEstadoCot(cot.id)} style={{ fontSize:"11px", padding:"5px 10px", borderRadius:"6px", cursor:"pointer", border:`1px solid ${est.border}`, fontFamily:"monospace", background:"transparent", color:est.color }}>↻ Estado</button>
+                          <button onClick={()=>{ setFormCot({...cot}); setEditandoCot(cot.id); setShowFormCot(true); }} className="bsm">✏️</button>
+                          <button onClick={()=>delCot(cot.id)} className="bsm" style={{ color:"#f87171" }}>🗑</button>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Items preview */}
+                    {cot.items.length > 0 && (
+                      <div style={{ marginTop:"10px", paddingTop:"10px", borderTop:"1px solid #27272a" }}>
+                        {cot.items.slice(0,3).map((item,idx)=>(
+                          <div key={idx} style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", padding:"2px 0", color:"#71717a" }}>
+                            <span>{item.nombre} <span style={{ color:"#3f3f46" }}>×{item.cantidad}</span></span>
+                            <span style={{ color:"#a1a1aa" }}>{fmtCLP(item.precio*item.cantidad)}</span>
+                          </div>
+                        ))}
+                        {cot.items.length > 3 && <p style={{ fontSize:"11px", color:"#3f3f46", marginTop:"3px" }}>...y {cot.items.length-3} ítem{cot.items.length-3!==1?"s":""} más</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* MODAL NUEVA/EDITAR COTIZACIÓN */}
+              {showFormCot && (
+                <div className="overlay">
+                  <div className="modal" style={{ maxWidth:"600px" }}>
+                    <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>{editandoCot?"Editar Cotización":"Nueva Cotización"}</p>
+
+                    {/* Datos básicos */}
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                      <div>
+                        <label className="lbl">Clínica</label>
+                        <input className="inp" list="lista-clinicas-cot" value={formCot.clinica}
+                          onChange={e=>{
+                            const clin = clinicas.find(c=>c.nombre===e.target.value);
+                            setFormCot(f=>({...f, clinica:e.target.value, doctor: clin?.doctor || f.doctor}));
+                          }} placeholder="Selecciona o escribe..."/>
+                        <datalist id="lista-clinicas-cot">{clinicas.map(c=><option key={c.id} value={c.nombre}/>)}</datalist>
+                      </div>
+                      <div>
+                        <label className="lbl">Doctor/a</label>
+                        <input className="inp" value={formCot.doctor} onChange={e=>setFormCot(f=>({...f,doctor:e.target.value}))}/>
+                      </div>
+                    </div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"16px" }}>
+                      <div>
+                        <label className="lbl">Fecha</label>
+                        <input className="inp" value={formCot.fecha} onChange={e=>setFormCot(f=>({...f,fecha:e.target.value}))}/>
+                      </div>
+                      <div>
+                        <label className="lbl">Validez (días)</label>
+                        <input type="number" className="inp" value={formCot.validez} onChange={e=>setFormCot(f=>({...f,validez:e.target.value}))}/>
+                      </div>
+                    </div>
+
+                    {/* Buscador de items */}
+                    <label className="lbl">Agregar trabajos al presupuesto</label>
+                    <input className="inp" style={{ marginBottom:"8px" }} placeholder="🔍 Buscar trabajo del arancel..." value={busqCotItem} onChange={e=>setBusqCotItem(e.target.value)}/>
+
+                    {busqCotItem.length > 1 && (
+                      <div style={{ background:"#09090b", border:"1px solid #3f3f46", borderRadius:"8px", maxHeight:"180px", overflowY:"auto", marginBottom:"12px" }}>
+                        {ARANCEL_COT.filter(a=>a.nombre.toLowerCase().includes(busqCotItem.toLowerCase())).map((a,idx)=>(
+                          <div key={idx} onClick={()=>{
+                            const exists = formCot.items.findIndex(i=>i.nombre===a.nombre);
+                            if (exists>=0) {
+                              setFormCot(f=>({...f, items: f.items.map((it,i)=>i===exists?{...it,cantidad:it.cantidad+1}:it)}));
+                            } else {
+                              setFormCot(f=>({...f, items:[...f.items, {...a, cantidad:1}]}));
+                            }
+                            setBusqCotItem("");
+                          }} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", borderBottom:"1px solid #27272a", cursor:"pointer" }}
+                            onMouseEnter={e=>e.currentTarget.style.background="#18181b"}
+                            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                            <div>
+                              <p style={{ color:"#f4f4f5", fontSize:"13px" }}>{a.nombre}</p>
+                              <p style={{ color:"#52525b", fontSize:"10px" }}>{a.area}</p>
+                            </div>
+                            <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"13px", whiteSpace:"nowrap" }}>{fmtCLP(a.precio)}</p>
+                          </div>
+                        ))}
+                        {ARANCEL_COT.filter(a=>a.nombre.toLowerCase().includes(busqCotItem.toLowerCase())).length===0 && (
+                          <p style={{ padding:"12px", color:"#52525b", fontSize:"13px" }}>Sin resultados</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Items seleccionados */}
+                    {formCot.items.length > 0 && (
+                      <div style={{ background:"#09090b", borderRadius:"8px", padding:"12px", marginBottom:"12px", maxHeight:"200px", overflowY:"auto" }}>
+                        <p style={{ fontSize:"10px", color:"#71717a", fontWeight:700, textTransform:"uppercase", letterSpacing:"1px", marginBottom:"8px" }}>Trabajos cotizados</p>
+                        {formCot.items.map((item,idx)=>(
+                          <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid #27272a", gap:"8px" }}>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <p style={{ color:"#f4f4f5", fontSize:"12px" }}>{item.nombre}</p>
+                              <p style={{ color:"#52525b", fontSize:"10px" }}>{item.area}</p>
+                            </div>
+                            <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                              <button onClick={()=>setFormCot(f=>({...f,items:f.items.map((it,i)=>i===idx&&it.cantidad>1?{...it,cantidad:it.cantidad-1}:it)}))}
+                                style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", width:"24px", height:"24px", borderRadius:"4px", cursor:"pointer", fontSize:"14px", lineHeight:1 }}>−</button>
+                              <span style={{ color:"#22d3ee", fontWeight:700, fontSize:"13px", minWidth:"20px", textAlign:"center" }}>{item.cantidad}</span>
+                              <button onClick={()=>setFormCot(f=>({...f,items:f.items.map((it,i)=>i===idx?{...it,cantidad:it.cantidad+1}:it)}))}
+                                style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", width:"24px", height:"24px", borderRadius:"4px", cursor:"pointer", fontSize:"14px", lineHeight:1 }}>+</button>
+                              <span style={{ color:"#a1a1aa", fontSize:"12px", minWidth:"72px", textAlign:"right" }}>{fmtCLP(item.precio*item.cantidad)}</span>
+                              <button onClick={()=>setFormCot(f=>({...f,items:f.items.filter((_,i)=>i!==idx)}))}
+                                style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"16px", padding:"0 2px" }}>×</button>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:"8px" }}>
+                          <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"15px" }}>
+                            Total: {fmtCLP(formCot.items.reduce((s,i)=>s+i.precio*i.cantidad,0))}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginBottom:"16px" }}>
+                      <label className="lbl">Observaciones (opcional)</label>
+                      <textarea className="inp" rows={2} value={formCot.observaciones} onChange={e=>setFormCot(f=>({...f,observaciones:e.target.value}))} placeholder="Ej: Incluye modelos de estudio, plazo de entrega 5 días hábiles..."/>
+                    </div>
+
+                    <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
+                      <button className="btng" onClick={()=>{setShowFormCot(false);setEditandoCot(null);setBusqCotItem("");}}>Cancelar</button>
+                      <button className="btn1" onClick={()=>saveCot(formCot)} disabled={!formCot.clinica||formCot.items.length===0}
+                        style={{ opacity:(!formCot.clinica||formCot.items.length===0)?0.5:1 }}>
+                        Guardar cotización
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
