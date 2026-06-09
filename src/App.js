@@ -215,12 +215,8 @@ export default function App() {
   const [filtroFactMes, setFiltroFactMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
   const [filtroFactTipo, setFiltroFactTipo] = useState("Todas");
 
-  // Calendario
-  const [calMes, setCalMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
+  // Eventos
   const [eventos, setEventos] = useState([]);
-  const [showFormEv, setShowFormEv] = useState(false);
-  const [formEv, setFormEv] = useState({ fecha:"", titulo:"", descripcion:"", tipo:"tarea" });
-  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
 
   // Metas
   const [metas, setMetas] = useState({});
@@ -371,45 +367,9 @@ export default function App() {
 
   const facturasFiltradas = facturas.filter(f => f.mes === filtroFactMes && (filtroFactTipo === "Todas" || f.tipo === filtroFactTipo));
 
-  // ── HANDLERS EVENTOS ──
-  const saveEv = (fecha) => {
-    if (!formEv.titulo) return;
-    const newEv = { ...formEv, fecha: fecha || formEv.fecha, id: Math.max(0, ...eventos.map(x=>x.id), 0)+1 };
-    const next = [...eventos, newEv];
-    setEventos(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas);
-    setShowFormEv(false); setFormEv({ fecha:"", titulo:"", descripcion:"", tipo:"tarea" });
-  };
-  const delEv = (id) => { const next = eventos.filter(e=>e.id!==id); setEventos(next); guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas); };
 
-  // ── TOGGLE ENTREGA TRABAJO ──
-  const toggleEntrega = (trabajoId) => {
-    const next = trabajos.map(t => {
-      if (t.id !== trabajoId) return t;
-      const nuevoEntregado = !t.entregado;
-      // Si se marca entregado y estaba EN PROCESO → pasa a FACTURAR
-      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "FACTURAR" : t.estado_pago;
-      // Si se desmarca y estaba FACTURAR → vuelve a EN PROCESO
-      const estadoFinal = !nuevoEntregado && t.estado_pago === "FACTURAR" ? "EN PROCESO" : nuevoEstado;
-      return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
-    });
-    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
-  };
 
-  // Trabajos en calendario con +5 días
-  const addDias = (fechaStr, dias) => {
-    if (!fechaStr) return null;
-    const d = new Date(fechaStr + "T12:00:00");
-    d.setDate(d.getDate() + dias);
-    return d.toISOString().split("T")[0];
-  };
 
-  const eventosDelDia = (fecha) => {
-    const evManuales = eventos.filter(e => e.fecha === fecha);
-    const evTrabajos = trabajos
-      .filter(t => { const fe = addDias(t.fecha_ingreso, 5); return fe === fecha; })
-      .map(t => ({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica} · ${t.paciente||""}`, tipo:"trabajo", fecha, entregado: t.entregado || false, trabajoId: t.id }));
-    return [...evManuales, ...evTrabajos];
-  };
 
   // ── HANDLERS METAS ──
   const saveMeta = () => {
@@ -496,195 +456,6 @@ export default function App() {
     </div>
   );
 
-  const renderCalendario = () => {
-    const [anio, mes] = calMes.split("-").map(Number);
-    const primerDia = new Date(anio, mes-1, 1).getDay();
-    const diasEnMes = new Date(anio, mes, 0).getDate();
-    const hoy = new Date().toISOString().split("T")[0];
-
-    const dias = [];
-    for (let i=0; i<primerDia; i++) dias.push(null);
-    for (let d=1; d<=diasEnMes; d++) dias.push(d);
-
-    const TIPO_COLOR = {
-      trabajo: { pending:"#7c2d12", done:"#14532d", pendingText:"#fb923c", doneText:"#4ade80" },
-      tarea:   { bg:"#1e3a5f", text:"#93c5fd" },
-      reunion: { bg:"#4c1d95", text:"#c4b5fd" },
-      recordatorio: { bg:"#713f12", text:"#fcd34d" },
-      pago:    { bg:"#064e3b", text:"#6ee7b7" },
-    };
-
-    // Todos los eventos de este mes para lista lateral
-    const todosEvsMes = [];
-    for (let d=1; d<=diasEnMes; d++) {
-      const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-      eventosDelDia(fecha).forEach(ev => todosEvsMes.push({ ...ev, fecha }));
-    }
-    const trabajosMesCal = todosEvsMes.filter(e=>e.tipo==="trabajo");
-    const eventosManualesMes = todosEvsMes.filter(e=>e.tipo!=="trabajo");
-
-    return (
-      <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
-
-        {/* Stats del mes */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
-          <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
-            <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Entregas pendientes</p>
-            <p style={{ fontSize:"22px", fontWeight:700, color:"#fb923c" }}>{trabajosMesCal.filter(e=>!e.entregado).length}</p>
-          </div>
-          <div style={{ background:"#18181b", border:"1px solid #14532d", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
-            <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Entregados</p>
-            <p style={{ fontSize:"22px", fontWeight:700, color:"#4ade80" }}>{trabajosMesCal.filter(e=>e.entregado).length}</p>
-          </div>
-          <div style={{ background:"#18181b", border:"1px solid #1e3a5f", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
-            <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Eventos</p>
-            <p style={{ fontSize:"22px", fontWeight:700, color:"#93c5fd" }}>{eventosManualesMes.length}</p>
-          </div>
-        </div>
-
-        {/* Nav mes */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#18181b", border:"1px solid #3f3f46", borderRadius:"8px", padding:"10px 16px" }}>
-          <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"18px", lineHeight:1 }} onClick={()=>{ const d=new Date(anio,mes-2,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); setDiaSeleccionado(null); }}>‹</button>
-          <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"16px" }}>{MESES.find(m=>m.value===calMes)?.label || calMes}</p>
-          <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"18px", lineHeight:1 }} onClick={()=>{ const d=new Date(anio,mes,1); setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); setDiaSeleccionado(null); }}>›</button>
-        </div>
-
-        {/* Grid calendario */}
-        <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"12px" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"3px", marginBottom:"6px" }}>
-            {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=>(
-              <div key={d} style={{ textAlign:"center", fontSize:"10px", color:"#52525b", padding:"4px", fontWeight:700 }}>{d}</div>
-            ))}
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"3px" }}>
-            {dias.map((d, i) => {
-              if (!d) return <div key={`e${i}`} style={{ minHeight:"52px" }}/>;
-              const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-              const evs = eventosDelDia(fecha);
-              const esHoy = fecha === hoy;
-              const seleccionado = diaSeleccionado === fecha;
-              const tienePendiente = evs.some(e=>e.tipo==="trabajo"&&!e.entregado);
-              const tieneEntregado = evs.some(e=>e.tipo==="trabajo"&&e.entregado);
-              const tieneEvento = evs.some(e=>e.tipo!=="trabajo");
-              return (
-                <div key={d} onClick={()=>setDiaSeleccionado(seleccionado?null:fecha)}
-            style={{ background: seleccionado?"#1e3a5f": esHoy?"#0c1a0f":"#09090b", border:`1px solid ${seleccionado?"#3b82f6":esHoy?"#22c55e":"#27272a"}`, borderRadius:"6px", padding:"5px 4px", cursor:"pointer", minHeight:"52px", position:"relative" }}>
-            <p style={{ fontSize:"11px", fontWeight: esHoy?700:400, color: esHoy?"#4ade80":"#d4d4d8", textAlign:"center", marginBottom:"3px" }}>{d}</p>
-            <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
-              {tienePendiente && <div style={{ fontSize:"8px", background:"#7c2d12", color:"#fb923c", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>⏳ Entrega</div>}
-              {tieneEntregado && <div style={{ fontSize:"8px", background:"#14532d", color:"#4ade80", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>✅ Listo</div>}
-              {tieneEvento && <div style={{ fontSize:"8px", background:"#1e3a5f", color:"#93c5fd", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>📌 {evs.filter(e=>e.tipo!=="trabajo").length}</div>}
-            </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Leyenda */}
-        <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
-          {[["⏳","#7c2d12","#fb923c","Entrega pendiente"],["✅","#14532d","#4ade80","Entregado"],["📌","#1e3a5f","#93c5fd","Evento manual"]].map(([ico,bg,col,lbl])=>(
-            <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-              <div style={{ fontSize:"10px", background:bg, color:col, padding:"2px 6px", borderRadius:"3px" }}>{ico}</div>
-              <span style={{ fontSize:"11px", color:"#71717a" }}>{lbl}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Detalle día seleccionado */}
-        {diaSeleccionado && (
-          <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
-              <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"14px" }}>
-                📅 {new Date(diaSeleccionado+"T12:00:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"})}
-              </p>
-              <button style={{ background:"#22d3ee", color:"#09090b", padding:"6px 14px", borderRadius:"6px", fontWeight:700, fontSize:"12px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>{ setFormEv({fecha:diaSeleccionado, titulo:"", descripcion:"", tipo:"tarea"}); setShowFormEv(true); }}>+ Evento</button>
-            </div>
-            {eventosDelDia(diaSeleccionado).length === 0 && <p style={{ color:"#52525b", fontSize:"13px" }}>Sin eventos este día</p>}
-            {eventosDelDia(diaSeleccionado).map((ev,idx) => (
-              <div key={idx} style={{ background:"#09090b", borderRadius:"8px", padding:"12px", marginBottom:"8px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"12px" }}>
-            <div style={{ flex:1 }}>
-              <div style={{ display:"flex", gap:"6px", alignItems:"center", marginBottom:"5px", flexWrap:"wrap" }}>
-                <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"3px",
-                  background: ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"):
-                    ev.tipo==="reunion"?"#4c1d95": ev.tipo==="recordatorio"?"#713f12":
-                    ev.tipo==="pago"?"#064e3b":"#1e3a5f",
-                  color: ev.tipo==="trabajo"?(ev.entregado?"#4ade80":"#fb923c"):
-                    ev.tipo==="reunion"?"#c4b5fd": ev.tipo==="recordatorio"?"#fcd34d":
-                    ev.tipo==="pago"?"#6ee7b7":"#93c5fd"
-                }}>{ev.tipo.toUpperCase()}</span>
-                {ev.tipo==="trabajo" && (
-                  <button onClick={()=>toggleEntrega(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background: ev.entregado?"#7c2d12":"#14532d", color: ev.entregado?"#fb923c":"#4ade80" }}>
-                    {ev.entregado?"↩ Marcar pendiente":"✅ Marcar entregado"}
-                  </button>
-                )}
-              </div>
-              <p style={{ color:"#fff", fontSize:"13px", fontWeight:600, marginBottom:"3px" }}>{ev.titulo}</p>
-              {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>}
-            </div>
-            {ev.tipo !== "trabajo" && (
-              <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"18px" }} onClick={()=>delEv(ev.id)}>🗑</button>
-            )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Lista próximas entregas */}
-        {trabajosMesCal.filter(e=>!e.entregado).length > 0 && (
-          <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"10px", padding:"16px" }}>
-            <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#fb923c", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>⏳ Entregas pendientes este mes</p>
-            {trabajosMesCal.filter(e=>!e.entregado).map((ev,idx)=>(
-              <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
-                <div>
-            <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{ev.titulo}</p>
-            <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>
-                </div>
-                <div style={{ textAlign:"right" }}>
-            <p style={{ color:"#fb923c", fontSize:"12px", fontWeight:700 }}>{ev.fecha}</p>
-            <button onClick={()=>toggleEntrega(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:"#14532d", color:"#4ade80", marginTop:"4px" }}>✅ Entregado</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Modal nuevo evento */}
-        {showFormEv && (
-          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
-            <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"400px", padding:"24px" }}>
-              <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>
-                Nuevo Evento · {formEv.fecha && new Date(formEv.fecha+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"long"})}
-              </p>
-              <div style={{ marginBottom:"12px" }}>
-                <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Tipo</label>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px" }}>
-            {[["tarea","📋 Tarea","#1e3a5f","#93c5fd"],["reunion","🤝 Reunión","#4c1d95","#c4b5fd"],["recordatorio","🔔 Recordatorio","#713f12","#fcd34d"],["pago","💰 Pago","#064e3b","#6ee7b7"]].map(([val,lbl,bg,col])=>(
-              <button key={val} onClick={()=>setFormEv(f=>({...f,tipo:val}))} style={{ padding:"8px", borderRadius:"6px", cursor:"pointer", border:`2px solid ${formEv.tipo===val?col:"#3f3f46"}`, background: formEv.tipo===val?bg:"transparent", color: formEv.tipo===val?col:"#71717a", fontFamily:"monospace", fontSize:"12px", fontWeight: formEv.tipo===val?700:400 }}>{lbl}</button>
-            ))}
-                </div>
-              </div>
-              <div style={{ marginBottom:"12px" }}>
-                <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Título</label>
-                <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formEv.titulo} onChange={e=>setFormEv(f=>({...f,titulo:e.target.value}))} placeholder="Ej: Reunión con MAODENTAL"/>
-              </div>
-              <div style={{ marginBottom:"16px" }}>
-                <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Descripción (opcional)</label>
-                <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formEv.descripcion} onChange={e=>setFormEv(f=>({...f,descripcion:e.target.value}))}/>
-              </div>
-              <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
-                <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setShowFormEv(false)}>Cancelar</button>
-                <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>saveEv(formEv.fecha)}>Guardar</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div style={{ minHeight:"100vh", background:"#09090b", color:"#f4f4f5", fontFamily:"'Space Mono', monospace" }}>
       <style>{`
@@ -739,7 +510,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1197,8 +968,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ════ CALENDARIO ════ */}
-        {tab === "calendario" && renderCalendario()}
 
         {/* ════ METAS ════ */}
         {tab === "metas" && (() => {
