@@ -747,7 +747,7 @@ export default function App() {
         .bar { border-radius: 4px; transition: height 0.4s; }
         .pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid; display: inline-block; }
         .pill-pagado { background: rgba(6,78,59,0.5); color: #6ee7b7; border-color: #065f46; }
-        .pill-fact { background: rgba(12,74,110,0.5); color: #7dd3fc; border-color: #0c4a6e; }
+        .pill-fact { background: rgba(109,40,217,0.3); color: #c4b5fd; border-color: #7c3aed; }
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
