@@ -524,7 +524,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1503,6 +1503,129 @@ export default function App() {
               ))}
 
               <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>* Bandas no incluidas · Urgencias tienen cargo adicional</p>
+            </div>
+          );
+        })()}
+
+        {/* ════ CONVENIO ════ */}
+        {tab === "convenio" && (() => {
+          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+
+          const ARANCEL_CONVENIO = [
+            {
+              categoria: "🦷 Aparatos de Ortodoncia",
+              color: "#1e3a5f", border: "#3b82f6",
+              items: [
+                { nombre: "Placa de Expansión o Schwartz", normal: 40000, convenio: 36000 },
+                { nombre: "Placa de Contención (acetato)", normal: 35000, convenio: 32000 },
+                { nombre: "Disyuntor Mc.Namara (sin bandas ni ganchos)", normal: 60000, convenio: 57000 },
+                { nombre: "Disyuntor Hyrax con alambre contorneado (sin bandas)", normal: 60000, convenio: 58000 },
+                { nombre: "Botón de Nance (sin bandas)", normal: 40000, convenio: 38000 },
+                { nombre: "Mantenedor de espacio (sin bandas)", normal: 30000, convenio: 27000 },
+                { nombre: "Placa de Contención Hawley", normal: 40000, convenio: 38000 },
+                { nombre: "Aparato de Mauricio (con tornillo)", normal: 46000, convenio: 42000 },
+                { nombre: "Contención de Begg", normal: 46000, convenio: 46000 },
+                { nombre: "Disyuntor Hass", normal: 58000, convenio: 55000 },
+                { nombre: "Barra Lingual de Nance", normal: 40000, convenio: 37000 },
+                { nombre: "Quad Helix", normal: 50000, convenio: 46000 },
+                { nombre: "Barra Transpalatina (BTP o TPA)", normal: 38000, convenio: 35000 },
+                { nombre: "Bionator 1 (estándar)", normal: 88000, convenio: 85000 },
+                { nombre: "Aparato Monoblock de Mauricio", normal: 48000, convenio: 44000 },
+              ]
+            },
+            {
+              categoria: "🦷 Prótesis Removibles",
+              color: "#14532d", border: "#22c55e",
+              items: [
+                { nombre: "Prótesis parcial", normal: 65000, convenio: 52000 },
+                { nombre: "Prótesis total", normal: 65000, convenio: 52000 },
+                { nombre: "Prótesis con base metálica", normal: 100000, convenio: 92000 },
+                { nombre: "Prótesis inmediata", normal: 65000, convenio: 52000 },
+                { nombre: "Prótesis cosmética (hasta 3 dientes)", normal: 38000, convenio: 35000 },
+                { nombre: "Prótesis flexible", normal: 90000, convenio: 85000 },
+                { nombre: "Rebasado total o parcial", normal: 30000, convenio: 28000 },
+                { nombre: "Reparación simple", normal: 25000, convenio: 22000 },
+                { nombre: "Reparación compleja", normal: 25000, convenio: 22000 },
+              ]
+            },
+            {
+              categoria: "😁 Planos",
+              color: "#4c1d95", border: "#a855f7",
+              items: [
+                { nombre: "Plano de relajación acrílico", normal: 50000, convenio: 45000 },
+                { nombre: "Plano Estampado", normal: 35000, convenio: 30000 },
+                { nombre: "Plano relajación blando-dura", normal: 50000, convenio: 48000 },
+                { nombre: "Cubetillas de blanqueamiento", normal: 24000, convenio: 20000 },
+                { nombre: "Protector bucal simple", normal: 40000, convenio: 35000 },
+                { nombre: "Protector bucal doble", normal: 55000, convenio: 50000 },
+                { nombre: "Dientes Provisorios", normal: 15000, convenio: 12000 },
+              ]
+            },
+            {
+              categoria: "🖨️ Impresión 3D",
+              color: "#713f12", border: "#f59e0b",
+              items: [
+                { nombre: "1 Arcada", normal: 10000, convenio: 9000 },
+                { nombre: "2 Arcadas", normal: 12000, convenio: 10000 },
+                { nombre: "Plano de relajación 3D", normal: 70000, convenio: 65000 },
+              ]
+            },
+            {
+              categoria: "🦷 Área Fija",
+              color: "#7f1d1d", border: "#ef4444",
+              nota: "⚠️ No aplica rebaja en fija, pero los trabajos sí cuentan para el flujo de 10 mensuales.",
+              items: []
+            },
+          ];
+
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+              {/* Header convenio */}
+              <div style={{ background:"linear-gradient(135deg,#92400e,#d97706)", borderRadius:"12px", padding:"20px" }}>
+                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"18px", fontWeight:800, color:"#fff", marginBottom:"6px" }}>🤝 Convenio Laboratorio Dentis</p>
+                <p style={{ fontSize:"12px", color:"#fef3c7", lineHeight:1.5 }}>Dirigido a clínicas con mínimo <strong>10 trabajos mensuales</strong>. Accede a precios rebajados en removible, ortodoncia, planos e impresión 3D.</p>
+                <div style={{ marginTop:"12px", display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                  <span style={{ background:"rgba(0,0,0,0.2)", color:"#fef3c7", padding:"4px 12px", borderRadius:"20px", fontSize:"11px", fontWeight:700 }}>📍 Villarrica, Araucanía</span>
+                  <span style={{ background:"rgba(0,0,0,0.2)", color:"#fef3c7", padding:"4px 12px", borderRadius:"20px", fontSize:"11px", fontWeight:700 }}>📞 +569 91315887</span>
+                  <span style={{ background:"rgba(0,0,0,0.2)", color:"#fef3c7", padding:"4px 12px", borderRadius:"20px", fontSize:"11px", fontWeight:700 }}>✅ Cupos ilimitados · Solo 2026</span>
+                </div>
+              </div>
+
+              {/* Tabla de precios */}
+              {ARANCEL_CONVENIO.map(cat => (
+                <div key={cat.categoria} style={{ background:"#18181b", border:`1px solid ${cat.border}`, borderRadius:"10px", overflow:"hidden" }}>
+                  <div style={{ background:cat.color, padding:"10px 16px" }}>
+                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"13px", fontWeight:700, color:"#fff" }}>{cat.categoria}</p>
+                  </div>
+                  {cat.nota && (
+                    <div style={{ padding:"14px 16px", fontSize:"12px", color:"#f59e0b" }}>{cat.nota}</div>
+                  )}
+                  {cat.items.length > 0 && (
+                    <div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:"8px", padding:"8px 16px", borderBottom:"1px solid #27272a" }}>
+                        <span style={{ fontSize:"10px", color:"#52525b", fontWeight:700 }}>TRABAJO</span>
+                        <span style={{ fontSize:"10px", color:"#52525b", fontWeight:700, textAlign:"right" }}>NORMAL</span>
+                        <span style={{ fontSize:"10px", color:"#f59e0b", fontWeight:700, textAlign:"right" }}>CONVENIO</span>
+                      </div>
+                      {cat.items.map((item, idx) => {
+                        const ahorro = item.normal - item.convenio;
+                        return (
+                          <div key={idx} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:"8px", padding:"10px 16px", borderBottom: idx<cat.items.length-1?"1px solid #27272a":"none", alignItems:"center" }}>
+                            <div>
+                              <p style={{ color:"#d4d4d8", fontSize:"13px" }}>{item.nombre}</p>
+                              {ahorro > 0 && <p style={{ color:"#4ade80", fontSize:"10px", marginTop:"2px" }}>Ahorro: {fmtCLP(ahorro)}</p>}
+                            </div>
+                            <p style={{ color:"#52525b", fontSize:"13px", textDecoration:"line-through", textAlign:"right", whiteSpace:"nowrap" }}>{fmtCLP(item.normal)}</p>
+                            <p style={{ color:"#fbbf24", fontWeight:700, fontSize:"14px", textAlign:"right", whiteSpace:"nowrap" }}>{fmtCLP(item.convenio)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center" }}>* Reparaciones y urgencias con cargo adicional · Bandas no incluidas</p>
             </div>
           );
         })()}
