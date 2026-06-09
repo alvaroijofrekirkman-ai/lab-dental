@@ -500,7 +500,7 @@ export default function App() {
   const [capitalInput, setCapitalInput] = useState("1000000");
 
   const [showFormT, setShowFormT] = useState(false); const [editandoT, setEditandoT] = useState(null); const [formT, setFormT] = useState(emptyT);
-  const [showFormC, setShowFormC] = useState(false); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+  const [showFormC, setShowFormC] = useState(false); const [editandoC, setEditandoC] = useState(null); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   const [showFormG, setShowFormG] = useState(false); const [editandoG, setEditandoG] = useState(null); const [formG, setFormG] = useState(emptyG);
   const [showFormI, setShowFormI] = useState(false); const [editandoI, setEditandoI] = useState(null); const [formI, setFormI] = useState(emptyI);
 
@@ -614,10 +614,13 @@ export default function App() {
   const delT = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = trabajos.filter(t => t.id !== id); setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario); };
 
   const saveC = () => {
-    const next = [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
+    let next = editandoC !== null
+      ? clinicas.map(x => x.id === editandoC ? { ...formC, id: editandoC } : x)
+      : [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
     setClinicas(next); guardarTodo(trabajos, next, gastos, inventario);
-    setShowFormC(false); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+    setShowFormC(false); setEditandoC(null); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   };
+  const editC = (c) => { setFormC({ ...c }); setEditandoC(c.id); setShowFormC(true); };
 
   const saveG = () => {
     const vt = formG.valor_total || (Number(formG.cantidad) * Number(formG.valor_unit));
@@ -1200,9 +1203,24 @@ export default function App() {
               const esConvClinica = CLINICAS_CONVENIO.includes(c.nombre);
               return (
                 <div key={c.id} className={esConvClinica?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
-                  {esConvClinica && <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"5px 16px", display:"flex", alignItems:"center", gap:"6px" }}>
-                    <span style={{ fontSize:"11px", color:"#fef3c7", fontWeight:700, letterSpacing:"1px" }}>⭐ CLÍNICA CON CONVENIO</span>
-                  </div>}
+                  {esConvClinica && (()=>{
+                    const mesHoy=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+                    const tMes=trabajos.filter(t=>t.clinica===c.nombre&&t.mes===mesHoy).length;
+                    const META=10;
+                    const pct=Math.min(Math.round(tMes/META*100),100);
+                    const activo=tMes>=META;
+                    return (
+                      <div>
+                        <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"6px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:"11px", color:"#fef3c7", fontWeight:700, letterSpacing:"1px" }}>⭐ CLÍNICA CON CONVENIO</span>
+                          <span style={{ fontSize:"11px", color:activo?"#fff":"#fef3c7", fontWeight:700 }}>{tMes}/{META} trabajos · {activo?"✅ ACTIVO":"⏳ falta "+(META-tMes)}</span>
+                        </div>
+                        <div style={{ background:"#78350f", height:"5px" }}>
+                          <div style={{ background:activo?"#4ade80":"#fbbf24", height:"5px", width:`${pct}%`, transition:"width 0.5s" }}/>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div style={{ padding:"16px" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
                       <div>
@@ -1218,15 +1236,18 @@ export default function App() {
                       <div style={{ textAlign:"right" }}>
                         <p style={{ color:"#22d3ee", fontWeight:700 }}>{fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
                         <p style={{ fontSize:"12px", color:"#52525b", marginBottom:"6px" }}>{tCli.length} trabajo{tCli.length!==1?"s":""}</p>
-                        {tCli.length > 0 && (
-                          <button onClick={()=>setFichaClinicaId(expandida?null:c.id)}
-                            style={{ fontSize:"11px", padding:"4px 12px", borderRadius:"20px", cursor:"pointer", border:"1px solid", fontFamily:"monospace", fontWeight:700,
-                              background:expandida?"#27272a":"transparent",
-                              color:expandida?"#f4f4f5":"#22d3ee",
-                              borderColor:expandida?"#52525b":"#22d3ee" }}>
-                            {expandida?"▲ Ocultar":"▼ Ver trabajos"}
-                          </button>
-                        )}
+                        <div style={{ display:"flex", gap:"6px", justifyContent:"flex-end", flexWrap:"wrap", marginTop:"6px" }}>
+                          <button onClick={()=>editC(c)} style={{ fontSize:"11px", padding:"4px 12px", borderRadius:"20px", cursor:"pointer", border:"1px solid #52525b", fontFamily:"monospace", fontWeight:700, background:"transparent", color:"#a1a1aa" }}>✏️ Editar</button>
+                          {tCli.length > 0 && (
+                            <button onClick={()=>setFichaClinicaId(expandida?null:c.id)}
+                              style={{ fontSize:"11px", padding:"4px 12px", borderRadius:"20px", cursor:"pointer", border:"1px solid", fontFamily:"monospace", fontWeight:700,
+                                background:expandida?"#27272a":"transparent",
+                                color:expandida?"#f4f4f5":"#22d3ee",
+                                borderColor:expandida?"#52525b":"#22d3ee" }}>
+                              {expandida?"▲ Ocultar":"▼ Ver trabajos"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1285,13 +1306,13 @@ export default function App() {
             {showFormC && (
               <div className="overlay">
                 <div className="modal">
-                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>Nueva Clínica</p>
+                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>{editandoC?"Editar Clínica":"Nueva Clínica"}</p>
                   {[["Nombre","nombre"],["Localidad","localidad"],["Doctor/a","doctor"],["Teléfono","telefono"],["Dirección","direccion"],["Email","email"]].map(([lb,k])=>(
                     <div key={k} style={{ marginBottom:"12px" }}><label className="lbl">{lb}</label><input className="inp" value={formC[k]} onChange={e=>setFormC(f=>({...f,[k]:e.target.value}))}/></div>
                   ))}
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Estado</label><select className="inp" value={formC.estado} onChange={e=>setFormC(f=>({...f,estado:e.target.value}))}><option>PROSPECTO</option><option>CLIENTE</option><option>INACTIVO</option></select></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
-                    <button className="btng" onClick={()=>setShowFormC(false)}>Cancelar</button>
+                    <button className="btng" onClick={()=>{setShowFormC(false);setEditandoC(null);}}>Cancelar</button>
                     <button className="btn1" onClick={saveC}>Guardar</button>
                   </div>
                 </div>
