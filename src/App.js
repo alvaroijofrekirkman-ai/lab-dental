@@ -897,7 +897,10 @@ export default function App() {
                       {t.entregado && <span className="pill pill-entregado">✅ Entregado</span>}
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
-                    <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{t.tipo}</p>
+                    <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"3px" }}>
+                      {t.nro_ot && <span style={{ fontSize:"10px", background:"#27272a", color:"#22d3ee", border:"1px solid #164e63", padding:"2px 8px", borderRadius:"4px", fontFamily:"monospace", fontWeight:700, letterSpacing:"1px" }}>{t.nro_ot}</span>}
+                      <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", margin:0 }}>{t.tipo}</p>
+                    </div>
                     <p style={{ fontSize:"12px", color:esConv?"#f59e0b":"#71717a", fontWeight:esConv?700:400 }}>{esConv?"⭐ ":""}{t.clinica} · {t.doctor}</p>
                     {t.paciente && t.paciente!=="-" && <p style={{ fontSize:"12px", color:"#52525b" }}>Pac: {t.paciente}</p>}
                     {t.observaciones && <p style={{ fontSize:"11px", color:"#3f3f46", fontStyle:"italic", marginTop:"3px" }}>"{t.observaciones}"</p>}
@@ -939,6 +942,7 @@ export default function App() {
                     <div><label className="lbl">Fecha Ingreso</label><input type="date" className="inp" value={formT.fecha_ingreso} onChange={e=>setFormT(f=>({...f,fecha_ingreso:e.target.value}))}/></div>
                     <div><label className="lbl">Fecha Entrega</label><input type="date" className="inp" value={formT.fecha_entrega} onChange={e=>setFormT(f=>({...f,fecha_entrega:e.target.value}))}/></div>
                   </div>
+                  {editandoT && formT.nro_ot && <div style={{ marginBottom:"12px" }}><label className="lbl">N° OT</label><input className="inp" value={formT.nro_ot} readOnly style={{ opacity:0.5, cursor:"not-allowed" }}/></div>}
                   <div style={{ marginBottom:"12px" }}><label className="lbl">Estado de pago</label><select className="inp" value={formT.estado_pago} onChange={e=>setFormT(f=>({...f,estado_pago:e.target.value}))}>{ESTADOS_PAGO.map(e=><option key={e}>{e}</option>)}</select></div>
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Observaciones</label><textarea className="inp" rows={2} value={formT.observaciones} onChange={e=>setFormT(f=>({...f,observaciones:e.target.value}))}/></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
