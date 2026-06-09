@@ -484,6 +484,7 @@ export default function App() {
   const [showSugerencias, setShowSugerencias] = useState(false);
   const [catSeleccionada, setCatSeleccionada] = useState("Todas");
   const [fichaClinicaId, setFichaClinicaId] = useState(null);
+  const [busquedaGlobal, setBusquedaGlobal] = useState("");
 
 
   // Registro de actividad
@@ -778,11 +779,63 @@ export default function App() {
           <h1 className="tf" style={{ fontSize:"18px", fontWeight:800, color:"#fff" }}>🦷 LAB. DENTAL</h1>
           <p style={{ fontSize:"11px", color:"#52525b" }}>Villarrica · 2026</p>
         </div>
-        <div style={{ textAlign:"right" }}>
-          <p style={{ fontSize:"11px", color:"#52525b" }}>Álvaro Jofre K.</p>
-          {stockBajo.length > 0 && <p style={{ fontSize:"11px", color:"#f59e0b", fontWeight:700 }}>⚠ {stockBajo.length} stock bajo</p>}
+        <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+          <div style={{ position:"relative" }}>
+            <input
+              style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"20px", padding:"7px 14px 7px 32px", color:"#f4f4f5", fontFamily:"monospace", fontSize:"12px", width:"180px", outline:"none" }}
+              placeholder="🔍 Buscar..."
+              value={busquedaGlobal}
+              onChange={e=>setBusquedaGlobal(e.target.value)}
+            />
+            {busquedaGlobal && (
+              <button onClick={()=>setBusquedaGlobal("")} style={{ position:"absolute", right:"8px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"#71717a", cursor:"pointer", fontSize:"14px", padding:0, lineHeight:1 }}>✕</button>
+            )}
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <p style={{ fontSize:"11px", color:"#52525b" }}>Álvaro Jofre K.</p>
+            {stockBajo.length > 0 && <p style={{ fontSize:"11px", color:"#f59e0b", fontWeight:700 }}>⚠ {stockBajo.length} stock bajo</p>}
+          </div>
         </div>
       </div>
+
+      {/* BUSCADOR GLOBAL */}
+      {busquedaGlobal && (
+        <div style={{ background:"#09090b", borderBottom:"1px solid #27272a", padding:"8px 20px" }}>
+          <div style={{ maxWidth:"900px", margin:"0 auto" }}>
+            {(() => {
+              const q = busquedaGlobal.toLowerCase();
+              const resultados = trabajos.filter(t =>
+                [t.clinica,t.doctor,t.paciente,t.tipo,t.estado_pago,t.nro_ot,t.observaciones].some(v=>v?.toLowerCase().includes(q))
+              );
+              return resultados.length === 0
+                ? <p style={{ color:"#52525b", fontSize:"13px", padding:"8px 0" }}>Sin resultados para "{busquedaGlobal}"</p>
+                : (
+                  <div>
+                    <p style={{ fontSize:"11px", color:"#71717a", marginBottom:"8px" }}>{resultados.length} resultado{resultados.length!==1?"s":""} encontrado{resultados.length!==1?"s":""}</p>
+                    {resultados.slice(0,8).map(t=>{
+                      const esConv = CLINICAS_CONVENIO.includes(t.clinica);
+                      return (
+                        <div key={t.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"#18181b", borderRadius:"8px", marginBottom:"6px", border:`1px solid ${esConv?"#f59e0b":"#3f3f46"}`, gap:"12px", flexWrap:"wrap" }}>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ display:"flex", gap:"6px", alignItems:"center", flexWrap:"wrap", marginBottom:"3px" }}>
+                              {t.nro_ot && <span style={{ fontSize:"10px", background:"#27272a", color:"#22d3ee", border:"1px solid #164e63", padding:"1px 6px", borderRadius:"3px", fontFamily:"monospace", fontWeight:700 }}>{t.nro_ot}</span>}
+                              <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`} style={{ fontSize:"10px", padding:"1px 6px" }}>{t.estado_pago}</span>
+                              <span style={{ fontSize:"10px", color:"#52525b" }}>{mesLabel(t.mes)}</span>
+                            </div>
+                            <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{t.tipo}</p>
+                            <p style={{ color:esConv?"#f59e0b":"#71717a", fontSize:"11px" }}>{esConv?"⭐ ":""}{t.clinica}{t.paciente&&t.paciente!=="-"?" · "+t.paciente:""}</p>
+                          </div>
+                          <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"14px", whiteSpace:"nowrap" }}>{fmt(t.valor)}</p>
+                        </div>
+                      );
+                    })}
+                    {resultados.length > 8 && <p style={{ fontSize:"11px", color:"#52525b", textAlign:"center", marginTop:"4px" }}>...y {resultados.length-8} más. Busca en Trabajos para ver todos.</p>}
+                  </div>
+                );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
@@ -1140,30 +1193,48 @@ export default function App() {
                     {/* DETALLE DE TRABAJOS */}
                     {expandida && tCli.length > 0 && (
                       <div style={{ marginTop:"16px", borderTop:"1px solid #27272a", paddingTop:"16px" }}>
-                        <p style={{ fontSize:"10px", color:"#71717a", fontWeight:700, textTransform:"uppercase", letterSpacing:"2px", marginBottom:"10px" }}>
+                        <p style={{ fontSize:"10px", color:"#71717a", fontWeight:700, textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>
                           Historial de trabajos · {tCli.length} en total
                         </p>
-                        {tCli.sort((a,b)=>a.fecha_ingreso>b.fecha_ingreso?-1:1).map((t,idx)=>(
-                          <div key={t.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"10px 0", borderBottom: idx<tCli.length-1?"1px solid #27272a":"none", gap:"12px", flexWrap:"wrap" }}>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"4px" }}>
-                                {t.nro_ot && <span style={{ fontSize:"10px", background:"#27272a", color:"#22d3ee", border:"1px solid #164e63", padding:"1px 6px", borderRadius:"3px", fontFamily:"monospace", fontWeight:700 }}>{t.nro_ot}</span>}
-                                <span style={{ fontSize:"10px", background:"#27272a", color:"#71717a", padding:"1px 6px", borderRadius:"3px" }}>{t.area}</span>
-                                <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`} style={{ fontSize:"10px", padding:"1px 6px" }}>{t.estado_pago}</span>
+                        {(() => {
+                          const mesesConTrabajos = [...new Set(tCli.map(t=>t.mes))].sort((a,b)=>b>a?1:-1);
+                          return mesesConTrabajos.map(mes => {
+                            const tMes = tCli.filter(t=>t.mes===mes).sort((a,b)=>a.fecha_ingreso>b.fecha_ingreso?-1:1);
+                            const totalMes = tMes.reduce((s,t)=>s+Number(t.valor),0);
+                            return (
+                              <div key={mes} style={{ marginBottom:"16px" }}>
+                                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px", padding:"6px 10px", background:"#09090b", borderRadius:"6px" }}>
+                                  <p style={{ fontSize:"11px", color:"#22d3ee", fontWeight:700 }}>{mesLabel(mes)}</p>
+                                  <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
+                                    <span style={{ fontSize:"11px", color:"#52525b" }}>{tMes.length} trabajo{tMes.length!==1?"s":""}</span>
+                                    <span style={{ fontSize:"12px", color:"#22d3ee", fontWeight:700 }}>{fmt(totalMes)}</span>
+                                  </div>
+                                </div>
+                                {tMes.map((t,idx)=>(
+                                  <div key={t.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"8px 4px", borderBottom: idx<tMes.length-1?"1px solid #27272a":"none", gap:"12px", flexWrap:"wrap" }}>
+                                    <div style={{ flex:1, minWidth:0 }}>
+                                      <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"4px" }}>
+                                        {t.nro_ot && <span style={{ fontSize:"10px", background:"#27272a", color:"#22d3ee", border:"1px solid #164e63", padding:"1px 6px", borderRadius:"3px", fontFamily:"monospace", fontWeight:700 }}>{t.nro_ot}</span>}
+                                        <span style={{ fontSize:"10px", background:"#27272a", color:"#71717a", padding:"1px 6px", borderRadius:"3px" }}>{t.area}</span>
+                                        <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`} style={{ fontSize:"10px", padding:"1px 6px" }}>{t.estado_pago}</span>
+                                      </div>
+                                      <p style={{ color:"#f4f4f5", fontSize:"13px", fontWeight:600 }}>{t.tipo}</p>
+                                      {t.paciente && t.paciente!=="-" && <p style={{ color:"#52525b", fontSize:"11px" }}>Pac: {t.paciente}</p>}
+                                      {t.observaciones && <p style={{ color:"#3f3f46", fontSize:"11px", fontStyle:"italic" }}>"{t.observaciones}"</p>}
+                                      <div style={{ display:"flex", gap:"10px", marginTop:"3px" }}>
+                                        {t.fecha_ingreso && <span style={{ fontSize:"10px", color:"#3f3f46" }}>Ing: {t.fecha_ingreso}</span>}
+                                        {t.fecha_entrega && <span style={{ fontSize:"10px", color:"#3f3f46" }}>Ent: {t.fecha_entrega}</span>}
+                                      </div>
+                                    </div>
+                                    <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"14px", whiteSpace:"nowrap" }}>{fmt(t.valor)}</p>
+                                  </div>
+                                ))}
                               </div>
-                              <p style={{ color:"#f4f4f5", fontSize:"13px", fontWeight:600 }}>{t.tipo}</p>
-                              {t.paciente && t.paciente!=="-" && <p style={{ color:"#52525b", fontSize:"11px" }}>Pac: {t.paciente}</p>}
-                              {t.observaciones && <p style={{ color:"#3f3f46", fontSize:"11px", fontStyle:"italic" }}>"{t.observaciones}"</p>}
-                              <div style={{ display:"flex", gap:"10px", marginTop:"3px" }}>
-                                {t.fecha_ingreso && <span style={{ fontSize:"10px", color:"#3f3f46" }}>Ing: {t.fecha_ingreso}</span>}
-                                {t.fecha_entrega && <span style={{ fontSize:"10px", color:"#3f3f46" }}>Ent: {t.fecha_entrega}</span>}
-                              </div>
-                            </div>
-                            <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"14px", whiteSpace:"nowrap" }}>{fmt(t.valor)}</p>
-                          </div>
-                        ))}
-                        <div style={{ marginTop:"12px", display:"flex", justifyContent:"flex-end" }}>
-                          <p style={{ fontSize:"13px", color:"#22d3ee", fontWeight:700 }}>Total: {fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
+                            );
+                          });
+                        })()}
+                        <div style={{ marginTop:"4px", paddingTop:"12px", borderTop:"1px solid #3f3f46", display:"flex", justifyContent:"flex-end" }}>
+                          <p style={{ fontSize:"14px", color:"#22d3ee", fontWeight:700 }}>Total general: {fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
                         </div>
                       </div>
                     )}
