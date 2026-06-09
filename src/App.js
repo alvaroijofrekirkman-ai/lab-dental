@@ -113,7 +113,7 @@ const MESES = [
   { value: "2026-11", label: "Noviembre 2026" }, { value: "2026-12", label: "Diciembre 2026" },
 ];
 const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
-const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "PENDIENTE"];
+const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "PENDIENTE"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
 
@@ -132,6 +132,7 @@ const PILL_CLASS = {
   "FACTURADO": "pill-fact",
   "NO FACTURADO": "pill-nofact",
   "EN PROCESO": "pill-proc",
+  "FACTURAR": "pill-facturar",
   "PENDIENTE": "pill-pend",
 };
 
@@ -385,9 +386,11 @@ export default function App() {
     const next = trabajos.map(t => {
       if (t.id !== trabajoId) return t;
       const nuevoEntregado = !t.entregado;
-      // Si se marca entregado y estaba EN PROCESO → pasa a NO FACTURADO
-      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "NO FACTURADO" : t.estado_pago;
-      return { ...t, entregado: nuevoEntregado, estado_pago: nuevoEstado };
+      // Si se marca entregado y estaba EN PROCESO → pasa a FACTURAR
+      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "FACTURAR" : t.estado_pago;
+      // Si se desmarca y estaba FACTURAR → vuelve a EN PROCESO
+      const estadoFinal = !nuevoEntregado && t.estado_pago === "FACTURAR" ? "EN PROCESO" : nuevoEstado;
+      return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
     });
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
   };
@@ -520,6 +523,7 @@ export default function App() {
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
+        .pill-facturar { background: rgba(120,53,15,0.7); color: #fb923c; border-color: #c2410c; font-weight: 700; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
         .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
@@ -656,6 +660,7 @@ export default function App() {
                     <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
                       <span style={{ fontSize:"11px", background:"#27272a", color:"#71717a", padding:"2px 8px", borderRadius:"4px" }}>{t.area}</span>
                       <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>{t.estado_pago}</span>
+                      {t.entregado && <span style={{ fontSize:"11px", background:"rgba(20,83,45,0.5)", color:"#4ade80", border:"1px solid #166534", padding:"2px 8px", borderRadius:"20px" }}>✅ Entregado</span>}
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
                     <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{t.tipo}</p>
