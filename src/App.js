@@ -1268,7 +1268,7 @@ export default function App() {
                     <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
                       <div>
                         <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
-                          <p style={{ fontWeight:700, color:esConvClinica?"#fbbf24":"#fff", fontSize:esConvClinica?"15px":"14px" }}>{c.nombre}</p>
+                          <p style={{ fontWeight:700, color:esConvClinica?"#92400e":"#0c2340", fontSize:esConvClinica?"16px":"15px" }}>{c.nombre}</p>
                           <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
                           {esConvClinica && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
                         </div>
