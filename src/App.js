@@ -196,6 +196,243 @@ const ARANCEL_PLANO = [
   { nombre: "Incrustación E.MAX", precio: 94000, area: "Fija" },
 ];
 
+// ── COMPONENTE CALENDARIO ─────────────────────────────────────────
+function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, clinicas, gastos, inventario, capitalBase, facturas, metas }) {
+  const [calMes, setCalMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+  const [showFormEv, setShowFormEv] = useState(false);
+  const [formEv, setFormEv] = useState({ fecha:"", titulo:"", descripcion:"", tipo:"tarea" });
+
+  const partes = calMes.split("-").map(Number);
+  const anio = partes[0];
+  const mes = partes[1];
+  const primerDia = new Date(anio, mes-1, 1).getDay();
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+  const hoy = new Date().toISOString().split("T")[0];
+
+  const dias = [];
+  for (let i=0; i<primerDia; i++) dias.push(null);
+  for (let d=1; d<=diasEnMes; d++) dias.push(d);
+
+  const evsDia = (fecha) => {
+    const manuales = eventos.filter(e=>e.fecha===fecha);
+    const trabajosDia = trabajos
+      .filter(t=>t.fecha_entrega===fecha)
+      .map(t=>({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica}${t.paciente&&t.paciente!=="-"?" · "+t.paciente:""}`, tipo:"trabajo", entregado:t.entregado||false, trabajoId:t.id, fecha }));
+    return [...manuales, ...trabajosDia];
+  };
+
+  const todosEvsMes = [];
+  for (let d=1; d<=diasEnMes; d++) {
+    const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    evsDia(fecha).forEach(ev=>todosEvsMes.push({...ev,fecha}));
+  }
+  const trabajosMesCal = todosEvsMes.filter(e=>e.tipo==="trabajo");
+  const eventosManualesMes = todosEvsMes.filter(e=>e.tipo!=="trabajo");
+
+  const irMes = (delta) => {
+    const d = new Date(anio, mes-1+delta, 1);
+    setCalMes(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+    setDiaSeleccionado(null);
+  };
+
+  const marcarEntregado = (trabajoId) => {
+    const next = trabajos.map(t => {
+      if (t.id !== trabajoId) return t;
+      const nuevoEntregado = !t.entregado;
+      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "FACTURAR" : t.estado_pago;
+      const estadoFinal = !nuevoEntregado && t.estado_pago === "FACTURAR" ? "EN PROCESO" : nuevoEstado;
+      return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
+    });
+    setTrabajos(next);
+    guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
+  };
+
+  const saveEv = () => {
+    if (!formEv.titulo.trim()) return;
+    const newEv = { ...formEv, id: Math.max(0, ...eventos.map(x=>x.id), 0)+1 };
+    const next = [...eventos, newEv];
+    setEventos(next);
+    guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas);
+    setShowFormEv(false);
+    setFormEv({ fecha:"", titulo:"", descripcion:"", tipo:"tarea" });
+  };
+
+  const delEv = (id) => {
+    const next = eventos.filter(e=>e.id!==id);
+    setEventos(next);
+    guardarTodo(trabajos, clinicas, gastos, inventario, capitalBase, facturas, next, metas);
+  };
+
+  const MESES_CAL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+        <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
+          <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Entregas pendientes</p>
+          <p style={{ fontSize:"22px", fontWeight:700, color:"#fb923c" }}>{trabajosMesCal.filter(e=>!e.entregado).length}</p>
+        </div>
+        <div style={{ background:"#18181b", border:"1px solid #14532d", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
+          <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Entregados</p>
+          <p style={{ fontSize:"22px", fontWeight:700, color:"#4ade80" }}>{trabajosMesCal.filter(e=>e.entregado).length}</p>
+        </div>
+        <div style={{ background:"#18181b", border:"1px solid #1e3a5f", borderRadius:"8px", padding:"12px", textAlign:"center" }}>
+          <p style={{ fontSize:"10px", color:"#71717a", marginBottom:"3px" }}>Eventos</p>
+          <p style={{ fontSize:"22px", fontWeight:700, color:"#93c5fd" }}>{eventosManualesMes.length}</p>
+        </div>
+      </div>
+
+      {/* Nav mes */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#18181b", border:"1px solid #3f3f46", borderRadius:"8px", padding:"10px 16px" }}>
+        <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"18px" }} onClick={()=>irMes(-1)}>‹</button>
+        <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"16px" }}>{MESES_CAL[mes-1]} {anio}</p>
+        <button style={{ background:"#27272a", border:"1px solid #52525b", color:"#f4f4f5", padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"18px" }} onClick={()=>irMes(1)}>›</button>
+      </div>
+
+      {/* Grid */}
+      <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"12px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"3px", marginBottom:"6px" }}>
+          {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=>(
+            <div key={d} style={{ textAlign:"center", fontSize:"10px", color:"#52525b", padding:"4px", fontWeight:700 }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"3px" }}>
+          {dias.map((d,i) => {
+            if (!d) return <div key={"v"+i} style={{ minHeight:"52px" }}/>;
+            const fecha = `${anio}-${String(mes).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+            const evs = evsDia(fecha);
+            const esHoy = fecha===hoy;
+            const sel = diaSeleccionado===fecha;
+            const tienePend = evs.some(e=>e.tipo==="trabajo"&&!e.entregado);
+            const tieneEnt = evs.some(e=>e.tipo==="trabajo"&&e.entregado);
+            const tieneEv = evs.some(e=>e.tipo!=="trabajo");
+            return (
+              <div key={d} onClick={()=>setDiaSeleccionado(sel?null:fecha)}
+                style={{ background:sel?"#1e3a5f":esHoy?"#0c1a0f":"#09090b", border:`1px solid ${sel?"#3b82f6":esHoy?"#22c55e":"#27272a"}`, borderRadius:"6px", padding:"5px 4px", cursor:"pointer", minHeight:"52px" }}>
+                <p style={{ fontSize:"11px", fontWeight:esHoy?700:400, color:esHoy?"#4ade80":"#d4d4d8", textAlign:"center", marginBottom:"3px" }}>{d}</p>
+                <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+                  {tienePend && <div style={{ fontSize:"8px", background:"#7c2d12", color:"#fb923c", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>⏳</div>}
+                  {tieneEnt && <div style={{ fontSize:"8px", background:"#14532d", color:"#4ade80", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>✅</div>}
+                  {tieneEv && <div style={{ fontSize:"8px", background:"#1e3a5f", color:"#93c5fd", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>📌</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Leyenda */}
+      <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
+        {[["⏳","#7c2d12","#fb923c","Entrega pendiente"],["✅","#14532d","#4ade80","Entregado"],["📌","#1e3a5f","#93c5fd","Evento"]].map(([ico,bg,col,lbl])=>(
+          <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+            <div style={{ fontSize:"10px", background:bg, color:col, padding:"2px 6px", borderRadius:"3px" }}>{ico}</div>
+            <span style={{ fontSize:"11px", color:"#71717a" }}>{lbl}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Detalle día */}
+      {diaSeleccionado && (
+        <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"10px", padding:"16px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+            <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:"14px" }}>
+              📅 {new Date(diaSeleccionado+"T12:00:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"})}
+            </p>
+            <button style={{ background:"#22d3ee", color:"#09090b", padding:"6px 14px", borderRadius:"6px", fontWeight:700, fontSize:"12px", cursor:"pointer", border:"none", fontFamily:"monospace" }}
+              onClick={()=>{ setFormEv({fecha:diaSeleccionado,titulo:"",descripcion:"",tipo:"tarea"}); setShowFormEv(true); }}>+ Evento</button>
+          </div>
+          {evsDia(diaSeleccionado).length===0 && <p style={{ color:"#52525b", fontSize:"13px" }}>Sin eventos este día</p>}
+          {evsDia(diaSeleccionado).map((ev,idx)=>(
+            <div key={idx} style={{ background:"#09090b", borderRadius:"8px", padding:"12px", marginBottom:"8px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"12px" }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", gap:"6px", alignItems:"center", marginBottom:"5px", flexWrap:"wrap" }}>
+                    <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"3px",
+                      background:ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"):ev.tipo==="reunion"?"#4c1d95":ev.tipo==="recordatorio"?"#713f12":ev.tipo==="pago"?"#064e3b":"#1e3a5f",
+                      color:ev.tipo==="trabajo"?(ev.entregado?"#4ade80":"#fb923c"):ev.tipo==="reunion"?"#c4b5fd":ev.tipo==="recordatorio"?"#fcd34d":ev.tipo==="pago"?"#6ee7b7":"#93c5fd"
+                    }}>{ev.tipo.toUpperCase()}</span>
+                    {ev.tipo==="trabajo" && (
+                      <button onClick={()=>marcarEntregado(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700,
+                        background:ev.entregado?"#7c2d12":"#14532d", color:ev.entregado?"#fb923c":"#4ade80" }}>
+                        {ev.entregado?"↩ Pendiente":"✅ Entregado"}
+                      </button>
+                    )}
+                  </div>
+                  <p style={{ color:"#fff", fontSize:"13px", fontWeight:600, marginBottom:"3px" }}>{ev.titulo}</p>
+                  {ev.descripcion && <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>}
+                </div>
+                {ev.tipo!=="trabajo" && (
+                  <button style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:"18px" }} onClick={()=>delEv(ev.id)}>🗑</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Lista entregas pendientes del mes */}
+      {trabajosMesCal.filter(e=>!e.entregado).length>0 && (
+        <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"10px", padding:"16px" }}>
+          <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#fb923c", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>⏳ Entregas pendientes este mes</p>
+          {trabajosMesCal.filter(e=>!e.entregado).map((ev,idx)=>(
+            <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
+              <div>
+                <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{ev.titulo}</p>
+                <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>
+              </div>
+              <div style={{ textAlign:"right" }}>
+                <p style={{ color:"#fb923c", fontSize:"12px", fontWeight:700 }}>{ev.fecha}</p>
+                <button onClick={()=>marcarEntregado(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:"#14532d", color:"#4ade80", marginTop:"4px" }}>✅ Entregado</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal nuevo evento */}
+      {showFormEv && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
+          <div style={{ background:"#18181b", border:"1px solid #3f3f46", borderRadius:"12px", width:"100%", maxWidth:"400px", padding:"24px" }}>
+            <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#fff", marginBottom:"16px" }}>
+              Nuevo Evento · {formEv.fecha && new Date(formEv.fecha+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"long"})}
+            </p>
+            <div style={{ marginBottom:"12px" }}>
+              <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Tipo</label>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px" }}>
+                {[["tarea","📋 Tarea","#1e3a5f","#93c5fd"],["reunion","🤝 Reunión","#4c1d95","#c4b5fd"],["recordatorio","🔔 Recordatorio","#713f12","#fcd34d"],["pago","💰 Pago","#064e3b","#6ee7b7"]].map(([val,lbl,bg,col])=>(
+                  <button key={val} onClick={()=>setFormEv(f=>({...f,tipo:val}))}
+                    style={{ padding:"8px", borderRadius:"6px", cursor:"pointer", border:`2px solid ${formEv.tipo===val?col:"#3f3f46"}`,
+                      background:formEv.tipo===val?bg:"transparent", color:formEv.tipo===val?col:"#71717a", fontFamily:"monospace", fontSize:"12px", fontWeight:formEv.tipo===val?700:400 }}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:"12px" }}>
+              <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Título</label>
+              <input style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }}
+                value={formEv.titulo} onChange={e=>setFormEv(f=>({...f,titulo:e.target.value}))} placeholder="Ej: Llamar a MAODENTAL"/>
+            </div>
+            <div style={{ marginBottom:"16px" }}>
+              <label style={{ fontSize:"11px", color:"#71717a", display:"block", marginBottom:"4px" }}>Descripción (opcional)</label>
+              <textarea style={{ background:"#27272a", border:"1px solid #52525b", borderRadius:"6px", padding:"10px 14px", color:"#f4f4f5", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }}
+                rows={2} value={formEv.descripcion} onChange={e=>setFormEv(f=>({...f,descripcion:e.target.value}))}/>
+            </div>
+            <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
+              <button style={{ background:"transparent", border:"1px solid #52525b", color:"#a1a1aa", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }}
+                onClick={()=>setShowFormEv(false)}>Cancelar</button>
+              <button style={{ background:"#22d3ee", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }}
+                onClick={saveEv}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [ready, setReady] = useState(false);
@@ -524,7 +761,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #27272a", display:"flex", overflowX:"auto" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -991,6 +1228,23 @@ export default function App() {
           </div>
         )}
 
+
+        {/* ════ CALENDARIO ════ */}
+        {tab === "calendario" && (
+          <Calendario
+            trabajos={trabajos}
+            setTrabajos={setTrabajos}
+            eventos={eventos}
+            setEventos={setEventos}
+            guardarTodo={guardarTodo}
+            clinicas={clinicas}
+            gastos={gastos}
+            inventario={inventario}
+            capitalBase={capitalBase}
+            facturas={facturas}
+            metas={metas}
+          />
+        )}
 
         {/* ════ METAS ════ */}
         {tab === "metas" && (() => {
