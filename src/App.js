@@ -506,7 +506,14 @@ export default function App() {
     (async () => {
       const d = await cargarDatos();
       if (d) {
-        setTrabajos(d.trabajos || TRABAJOS_INICIALES);
+        const trabajosRaw = d.trabajos || TRABAJOS_INICIALES;
+        // Asignar OT a trabajos que no tienen
+        let changed = false;
+        const trabajosConOT = trabajosRaw.map(t => {
+          if (!t.nro_ot) { changed = true; return { ...t, nro_ot: `OT-${String(t.id).padStart(3,"0")}` }; }
+          return t;
+        });
+        setTrabajos(trabajosConOT);
         setClinicas(d.clinicas || CLINICAS_INICIALES);
         setGastos(d.gastos || GASTOS_INICIALES);
         setInventario(d.inventario || INVENTARIO_INICIAL);
@@ -517,7 +524,7 @@ export default function App() {
         setDeudas(d.deudas || []);
         setActividad(d.actividad || []);
       } else {
-        setTrabajos(TRABAJOS_INICIALES); setClinicas(CLINICAS_INICIALES);
+        setTrabajos(TRABAJOS_INICIALES.map(t=>({...t, nro_ot: t.nro_ot||`OT-${String(t.id).padStart(3,"0")}`}))); setClinicas(CLINICAS_INICIALES);
         setGastos(GASTOS_INICIALES); setInventario(INVENTARIO_INICIAL);
       }
       setReady(true);
