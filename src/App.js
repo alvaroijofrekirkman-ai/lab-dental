@@ -36,7 +36,7 @@ async function guardarDatos(datos) {
 
 // ── DATOS INICIALES ──────────────────────────────────────────────
 const CLINICAS_INICIALES = [
-  { id: 1, nombre: "MAODENTAL", localidad: "Villarrica", doctor: "Maria Jose Muñoz Ortega", telefono: "569 7979 4140", direccion: "Pedro Montt N° 774", email: "", estado: "CLIENTE" },
+  { id: 1, nombre: "MAODENTAL", localidad: "Villarrica", doctor: "Maria Jose Muñoz Ortega", telefono: "569 7979 4140", direccion: "Pedro Montt N° 774", email: "", estado: "CLIENTE", convenio: true },
   { id: 2, nombre: "LOS NOTROS", localidad: "Villarrica", doctor: "Sebastian Robles", telefono: "569 51230389", direccion: "Saturnino Epulef N° 899", email: "", estado: "CLIENTE" },
   { id: 3, nombre: "VIDADENTAL", localidad: "Villarrica", doctor: "Mariajose Olivares", telefono: "569 45889855", direccion: "Segunda Faja N° 805, Local 1", email: "", estado: "CLIENTE" },
   { id: 4, nombre: "CABRAPAN DENTAL", localidad: "Villarrica", doctor: "Yerti Cabrapan G", telefono: "569 96433456", direccion: "Edificio Pehuen", email: "", estado: "CLIENTE" },
@@ -712,6 +712,8 @@ export default function App() {
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
+        .pill-convenio { background: rgba(124,58,237,0.25); color: #c4b5fd; border-color: #7c3aed; font-weight: 700; }
+        .card-convenio { background: #18181b; border: 1px solid #7c3aed; border-radius: 10px; box-shadow: 0 0 12px rgba(124,58,237,0.15); }
         .pill-facturar { background: rgba(120,53,15,0.7); color: #fb923c; border-color: #c2410c; font-weight: 700; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
@@ -842,8 +844,10 @@ export default function App() {
               <span style={{ color:"#f59e0b" }}>{trabajosFiltrados.filter(t=>["EN PROCESO","NO FACTURADO"].includes(t.estado_pago)).length} pendientes</span>
             </div>
             {trabajosFiltrados.length===0 && <div className="card" style={{ padding:"40px", textAlign:"center", color:"#52525b", fontSize:"14px" }}>Sin trabajos este mes</div>}
-            {trabajosFiltrados.map(t => (
-              <div key={t.id} className="card" style={{ padding:"16px" }}>
+            {trabajosFiltrados.map(t => {
+              const esConv = clinicas.find(c=>c.nombre===t.clinica)?.convenio;
+              return (
+              <div key={t.id} className={esConv?"card-convenio":"card"} style={{ padding:"16px" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
@@ -870,7 +874,8 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
             {showFormT && (
               <div className="overlay">
                 <div className="modal">
@@ -1044,12 +1049,13 @@ export default function App() {
             {clinicas.map(c=>{
               const tCli=trabajos.filter(t=>t.clinica===c.nombre);
               return (
-                <div key={c.id} className="card" style={{ padding:"16px" }}>
+                <div key={c.id} className={c.convenio?"card-convenio":"card"} style={{ padding:"16px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
                     <div>
-                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
-                        <p style={{ fontWeight:700, color:"#fff" }}>{c.nombre}</p>
+                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
+                        <p style={{ fontWeight:700, color:c.convenio?"#c4b5fd":"#fff" }}>{c.nombre}</p>
                         <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
+                        {c.convenio && <span className="pill pill-convenio">★ CONVENIO</span>}
                       </div>
                       <p style={{ fontSize:"12px", color:"#71717a" }}>{c.localidad} · {c.doctor}</p>
                       {c.telefono && <p style={{ fontSize:"12px", color:"#52525b" }}>📞 {c.telefono}</p>}
