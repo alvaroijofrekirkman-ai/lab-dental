@@ -2238,7 +2238,7 @@ export default function App() {
   .dest-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
   .dest-name { font-size:16px; font-weight:700; color:#1e293b; }
   .dest-doctor { font-size:13px; color:#475569; margin-top:3px; }
-  table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:0; }
   thead tr { background:#0ea5e9; }
   thead th { color:#fff; padding:10px 12px; font-size:11px; font-weight:700; text-align:left; text-transform:uppercase; letter-spacing:0.5px; }
   thead th:last-child { text-align:right; }
@@ -2252,7 +2252,7 @@ export default function App() {
   .area-badge { display:inline-block; background:#e0f2fe; color:#0369a1; font-size:10px; padding:1px 6px; border-radius:10px; margin-left:6px; }
   .total-row { background:#0ea5e9 !important; }
   .total-row td { color:#fff !important; font-weight:700 !important; font-size:15px !important; padding:12px !important; }
-  .obs { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:#92400e; }
+  .obs { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:12px 16px; margin-top:80px; margin-bottom:24px; font-size:12px; color:#92400e; }
   .obs-label { font-weight:700; margin-bottom:4px; }
   .footer { text-align:center; padding-top:20px; border-top:1px solid #e2e8f0; }
   .footer p { font-size:11px; color:#94a3b8; margin-bottom:3px; }
