@@ -483,8 +483,8 @@ export default function App() {
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
-        .pill-convenio { background: rgba(124,58,237,0.25); color: #c4b5fd; border-color: #7c3aed; font-weight: 700; }
-        .card-convenio { background: #18181b; border: 1px solid #7c3aed; border-radius: 10px; box-shadow: 0 0 12px rgba(124,58,237,0.15); }
+        .pill-convenio { background: rgba(245,158,11,0.2); color: #fbbf24; border-color: #d97706; font-weight: 700; letter-spacing: 0.5px; }
+        .card-convenio { background: linear-gradient(135deg, #18181b 0%, #1c1a0f 100%); border: 2px solid #f59e0b; border-radius: 10px; box-shadow: 0 0 16px rgba(245,158,11,0.25); }
         .pill-facturar { background: rgba(120,53,15,0.7); color: #fb923c; border-color: #c2410c; font-weight: 700; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
@@ -628,7 +628,7 @@ export default function App() {
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
                     <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{t.tipo}</p>
-                    <p style={{ fontSize:"12px", color:"#71717a" }}>{t.clinica} · {t.doctor}</p>
+                    <p style={{ fontSize:"12px", color:esConv?"#f59e0b":"#71717a", fontWeight:esConv?700:400 }}>{esConv?"⭐ ":""}{t.clinica} · {t.doctor}</p>
                     {t.paciente && t.paciente!=="-" && <p style={{ fontSize:"12px", color:"#52525b" }}>Pac: {t.paciente}</p>}
                     {t.observaciones && <p style={{ fontSize:"11px", color:"#3f3f46", fontStyle:"italic", marginTop:"3px" }}>"{t.observaciones}"</p>}
                     <div style={{ display:"flex", gap:"12px", marginTop:"4px" }}>
@@ -820,13 +820,17 @@ export default function App() {
             {clinicas.map(c=>{
               const tCli=trabajos.filter(t=>t.clinica===c.nombre);
               return (
-                <div key={c.id} className={c.convenio?"card-convenio":"card"} style={{ padding:"16px" }}>
+                <div key={c.id} className={c.convenio?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
+                  {c.convenio && <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"5px 16px", display:"flex", alignItems:"center", gap:"6px" }}>
+                    <span style={{ fontSize:"11px", color:"#fef3c7", fontWeight:700, letterSpacing:"1px" }}>⭐ CLÍNICA CON CONVENIO</span>
+                  </div>}
+                  <div style={{ padding:"16px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
                     <div>
                       <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
-                        <p style={{ fontWeight:700, color:c.convenio?"#c4b5fd":"#fff" }}>{c.nombre}</p>
+                        <p style={{ fontWeight:700, color:c.convenio?"#fbbf24":"#fff", fontSize:c.convenio?"15px":"14px" }}>{c.nombre}</p>
                         <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
-                        {c.convenio && <span className="pill pill-convenio">★ CONVENIO</span>}
+                        {c.convenio && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
                       </div>
                       <p style={{ fontSize:"12px", color:"#71717a" }}>{c.localidad} · {c.doctor}</p>
                       {c.telefono && <p style={{ fontSize:"12px", color:"#52525b" }}>📞 {c.telefono}</p>}
@@ -836,6 +840,7 @@ export default function App() {
                       <p style={{ color:"#22d3ee", fontWeight:700 }}>{fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
                       <p style={{ fontSize:"12px", color:"#52525b" }}>{tCli.length} trabajos</p>
                     </div>
+                  </div>
                   </div>
                 </div>
               );
