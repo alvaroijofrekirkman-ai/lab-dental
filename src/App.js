@@ -44,6 +44,7 @@ const CLINICAS_INICIALES = [
   { id: 6, nombre: "CLINICA ARAUCANIA", localidad: "Villarrica", doctor: "Cristobal Pereira", telefono: "", direccion: "", email: "", estado: "PROSPECTO" },
   { id: 7, nombre: "CLINICA KUTRALKO", localidad: "Villarrica", doctor: "Alarcon", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
   { id: 8, nombre: "CLINICA DENTALIZ", localidad: "Villarrica", doctor: "Licet Salazar", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
+  { id: 9, nombre: "CLINICA ZX PUCON", localidad: "Pucón", doctor: "", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
 ];
 
 const TRABAJOS_INICIALES = [
@@ -996,7 +997,17 @@ export default function App() {
                     <div><label className="lbl">Mes</label><select className="inp" value={formT.mes} onChange={e=>setFormT(f=>({...f,mes:e.target.value}))}>{MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
                     <div><label className="lbl">Área</label><select className="inp" value={formT.area} onChange={e=>setFormT(f=>({...f,area:e.target.value}))}>{AREAS.map(a=><option key={a}>{a}</option>)}</select></div>
                   </div>
-                  {[["Clínica","clinica"],["Doctor/a","doctor"],["Paciente","paciente"],["Tipo de trabajo","tipo"],["Localidad","localidad"]].map(([lb,k])=>(
+                  <div style={{ marginBottom:"12px" }}>
+                    <label className="lbl">Clínica</label>
+                    <input className="inp" list="lista-clinicas" value={formT.clinica} onChange={e=>{
+                      const clin = clinicas.find(c=>c.nombre===e.target.value);
+                      setFormT(f=>({...f, clinica:e.target.value, doctor: clin?.doctor || f.doctor}));
+                    }} placeholder="Selecciona o escribe..."/>
+                    <datalist id="lista-clinicas">
+                      {clinicas.map(c=><option key={c.id} value={c.nombre}/>)}
+                    </datalist>
+                  </div>
+                  {[["Doctor/a","doctor"],["Paciente","paciente"],["Tipo de trabajo","tipo"],["Localidad","localidad"]].map(([lb,k])=>(
                     <div key={k} style={{ marginBottom:"12px" }}><label className="lbl">{lb}</label><input className="inp" value={formT[k]} onChange={e=>setFormT(f=>({...f,[k]:e.target.value}))}/></div>
                   ))}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
