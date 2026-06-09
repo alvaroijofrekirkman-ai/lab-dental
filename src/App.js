@@ -322,6 +322,17 @@ export default function App() {
   const invFiltrado = useMemo(() => inventario.filter(i => filtroInvCat === "Todas" || i.categoria === filtroInvCat), [inventario, filtroInvCat]);
   const stockBajo = useMemo(() => inventario.filter(i => i.cantidad <= i.cantidad_minima), [inventario]);
 
+  const toggleEntregaT = (id) => {
+    const next = trabajos.map(t => {
+      if (t.id !== id) return t;
+      const nuevoEntregado = !t.entregado;
+      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "FACTURAR" : t.estado_pago;
+      const estadoFinal = !nuevoEntregado && t.estado_pago === "FACTURAR" ? "EN PROCESO" : nuevoEstado;
+      return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
+    });
+    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario);
+  };
+
   const saveT = () => {
     const nextId = Math.max(0, ...trabajos.map(x => x.id)) + 1;
     const nextOt = editandoT !== null ? formT.nro_ot : `OT-${String(nextId).padStart(3,"0")}`;
@@ -614,6 +625,7 @@ export default function App() {
               <span style={{ color:"#22d3ee", fontWeight:700 }}>{fmt(trabajosFiltrados.reduce((s,t)=>s+Number(t.valor),0))}</span>
               <span style={{ color:"#4ade80" }}>{trabajosFiltrados.filter(t=>["PAGADO","FACTURADO"].includes(t.estado_pago)).length} cobrados</span>
               <span style={{ color:"#f59e0b" }}>{trabajosFiltrados.filter(t=>["EN PROCESO","NO FACTURADO"].includes(t.estado_pago)).length} pendientes</span>
+              <span style={{ color:"#fb923c", fontWeight:700 }}>{trabajosFiltrados.filter(t=>t.estado_pago==="FACTURAR").length > 0 ? `${trabajosFiltrados.filter(t=>t.estado_pago==="FACTURAR").length} por facturar` : ""}</span>
             </div>
             {trabajosFiltrados.length===0 && <div className="card" style={{ padding:"40px", textAlign:"center", color:"#52525b", fontSize:"14px" }}>Sin trabajos este mes</div>}
             {trabajosFiltrados.map(t => {
@@ -639,7 +651,10 @@ export default function App() {
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
                     <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"16px" }}>{fmt(t.valor)}</p>
-                    <div style={{ display:"flex", gap:"4px" }}>
+                    <div style={{ display:"flex", gap:"4px", flexWrap:"wrap", justifyContent:"flex-end" }}>
+                      <button onClick={()=>toggleEntregaT(t.id)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:t.entregado?"#7c2d12":"#14532d", color:t.entregado?"#fb923c":"#4ade80" }}>
+                        {t.entregado?"↩ Pendiente":"✅ Entregar"}
+                      </button>
                       <button className="bsm" onClick={()=>editT(t)}>✏️</button>
                       <button className="bsm" style={{ color:"#f87171" }} onClick={()=>delT(t.id)}>🗑</button>
                     </div>
