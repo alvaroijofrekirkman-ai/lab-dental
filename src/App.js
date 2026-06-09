@@ -2196,8 +2196,7 @@ export default function App() {
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, sans-serif; background:#fff; color:#1a1a1a; padding:40px; position:relative; }
-  body::before {
-    content: "";
+  .watermark {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -2211,6 +2210,20 @@ export default function App() {
     opacity: 0.30;
     pointer-events: none;
     z-index: 0;
+  }
+  .content { position: relative; z-index: 1; }
+  @media print {
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 750px;
+      height: 750px;
+      opacity: 0.30;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
   body > * { position: relative; z-index: 1; }
   .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px; padding-bottom:20px; border-bottom:3px solid #0ea5e9; }
@@ -2247,6 +2260,8 @@ export default function App() {
 </style>
 </head>
 <body>
+<div class="watermark"></div>
+<div class="content">
 <div class="header">
   <div>
     <div class="lab-name">🦷 LABORATORIO DENTAL DENTIS</div>
@@ -2296,6 +2311,7 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
   <p class="gracias">¡Gracias por confiar en Laboratorio Dental Dentis!</p>
   <p>Bandas no incluidas · Urgencias con cargo adicional</p>
   <p>Para consultas: +569 91315887 · Villarrica, Araucanía</p>
+</div>
 </div>
 </body>
 </html>`;
