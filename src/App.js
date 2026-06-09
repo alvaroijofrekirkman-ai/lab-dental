@@ -2277,7 +2277,7 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
 
 <div class="footer">
   <p class="gracias">¡Gracias por confiar en Laboratorio Dental Dentis!</p>
-  <p>Los precios incluyen IVA · Bandas no incluidas · Urgencias con cargo adicional</p>
+  <p>Bandas no incluidas · Urgencias con cargo adicional</p>
   <p>Para consultas: +569 91315887 · Villarrica, Araucanía</p>
 </div>
 </body>
