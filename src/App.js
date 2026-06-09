@@ -214,12 +214,29 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
   for (let i=0; i<primerDia; i++) dias.push(null);
   for (let d=1; d<=diasEnMes; d++) dias.push(d);
 
+  const add5DiasHabiles = (fechaStr) => {
+    if (!fechaStr) return null;
+    const d = new Date(fechaStr + "T12:00:00");
+    let agregados = 0;
+    while (agregados < 5) {
+      d.setDate(d.getDate() + 1);
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) agregados++;
+    }
+    return d.toISOString().split("T")[0];
+  };
+
   const evsDia = (fecha) => {
     const manuales = eventos.filter(e=>e.fecha===fecha);
-    const trabajosDia = trabajos
+    // Trabajos con fecha_entrega explícita
+    const conFecha = trabajos
       .filter(t=>t.fecha_entrega===fecha)
-      .map(t=>({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica}${t.paciente&&t.paciente!=="-"?" · "+t.paciente:""}`, tipo:"trabajo", entregado:t.entregado||false, trabajoId:t.id, fecha }));
-    return [...manuales, ...trabajosDia];
+      .map(t=>({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica}${t.paciente&&t.paciente!=="-"?" · "+t.paciente:""}`, tipo:"trabajo", entregado:t.entregado||false, trabajoId:t.id, fecha, estimada:false }));
+    // Trabajos EN PROCESO sin fecha_entrega → +5 días hábiles
+    const enProceso = trabajos
+      .filter(t=>t.estado_pago==="EN PROCESO"&&t.fecha_ingreso&&!t.fecha_entrega&&add5DiasHabiles(t.fecha_ingreso)===fecha)
+      .map(t=>({ id:`t_${t.id}`, titulo:`🦷 ${t.tipo}`, descripcion:`${t.clinica}${t.paciente&&t.paciente!=="-"?" · "+t.paciente:""}`, tipo:"trabajo", entregado:false, trabajoId:t.id, fecha, estimada:true }));
+    return [...manuales, ...conFecha, ...enProceso];
   };
 
   const todosEvsMes = [];
@@ -314,7 +331,8 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
                 style={{ background:sel?"#1e3a5f":esHoy?"#0c1a0f":"#09090b", border:`1px solid ${sel?"#3b82f6":esHoy?"#22c55e":"#27272a"}`, borderRadius:"6px", padding:"5px 4px", cursor:"pointer", minHeight:"52px" }}>
                 <p style={{ fontSize:"11px", fontWeight:esHoy?700:400, color:esHoy?"#4ade80":"#d4d4d8", textAlign:"center", marginBottom:"3px" }}>{d}</p>
                 <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
-                  {tienePend && <div style={{ fontSize:"8px", background:"#7c2d12", color:"#fb923c", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>⏳</div>}
+                  {evsDia(fecha).some(e=>e.tipo==="trabajo"&&!e.entregado&&e.estimada) && <div style={{ fontSize:"8px", background:"#78350f", color:"#fbbf24", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>📋</div>}
+                  {tienePend && !evsDia(fecha).every(e=>e.estimada||e.tipo!=="trabajo"||e.entregado) && <div style={{ fontSize:"8px", background:"#7c2d12", color:"#fb923c", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>⏳</div>}
                   {tieneEnt && <div style={{ fontSize:"8px", background:"#14532d", color:"#4ade80", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>✅</div>}
                   {tieneEv && <div style={{ fontSize:"8px", background:"#1e3a5f", color:"#93c5fd", borderRadius:"3px", padding:"1px 3px", textAlign:"center" }}>📌</div>}
                 </div>
@@ -326,7 +344,7 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
 
       {/* Leyenda */}
       <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
-        {[["⏳","#7c2d12","#fb923c","Entrega pendiente"],["✅","#14532d","#4ade80","Entregado"],["📌","#1e3a5f","#93c5fd","Evento"]].map(([ico,bg,col,lbl])=>(
+        {[["⏳","#7c2d12","#fb923c","Entrega pendiente"],["✅","#14532d","#4ade80","Entregado"],["📌","#1e3a5f","#93c5fd","Evento"],["📋","#78350f","#fbbf24","Entrega estimada"]].map(([ico,bg,col,lbl])=>(
           <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
             <div style={{ fontSize:"10px", background:bg, color:col, padding:"2px 6px", borderRadius:"3px" }}>{ico}</div>
             <span style={{ fontSize:"11px", color:"#71717a" }}>{lbl}</span>
@@ -353,7 +371,7 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
                     <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"3px",
                       background:ev.tipo==="trabajo"?(ev.entregado?"#14532d":"#7c2d12"):ev.tipo==="reunion"?"#4c1d95":ev.tipo==="recordatorio"?"#713f12":ev.tipo==="pago"?"#064e3b":"#1e3a5f",
                       color:ev.tipo==="trabajo"?(ev.entregado?"#4ade80":"#fb923c"):ev.tipo==="reunion"?"#c4b5fd":ev.tipo==="recordatorio"?"#fcd34d":ev.tipo==="pago"?"#6ee7b7":"#93c5fd"
-                    }}>{ev.tipo.toUpperCase()}</span>
+                    }}>{ev.tipo==='trabajo'&&ev.estimada?'📋 EST. ENTREGA':ev.tipo.toUpperCase()}</span>
                     {ev.tipo==="trabajo" && (
                       <button onClick={()=>marcarEntregado(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700,
                         background:ev.entregado?"#7c2d12":"#14532d", color:ev.entregado?"#fb923c":"#4ade80" }}>
@@ -377,14 +395,14 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
       {trabajosMesCal.filter(e=>!e.entregado).length>0 && (
         <div style={{ background:"#18181b", border:"1px solid #7c2d12", borderRadius:"10px", padding:"16px" }}>
           <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#fb923c", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>⏳ Entregas pendientes este mes</p>
-          {trabajosMesCal.filter(e=>!e.entregado).map((ev,idx)=>(
+          {trabajosMesCal.filter(e=>!e.entregado).sort((a,b)=>a.fecha>b.fecha?1:-1).map((ev,idx)=>(
             <div key={idx} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #27272a" }}>
               <div>
                 <p style={{ color:"#fff", fontSize:"13px", fontWeight:600 }}>{ev.titulo}</p>
                 <p style={{ color:"#71717a", fontSize:"12px" }}>{ev.descripcion}</p>
               </div>
               <div style={{ textAlign:"right" }}>
-                <p style={{ color:"#fb923c", fontSize:"12px", fontWeight:700 }}>{ev.fecha}</p>
+                <p style={{ color:ev.estimada?"#fbbf24":"#fb923c", fontSize:"12px", fontWeight:700 }}>{ev.fecha}{ev.estimada?" (est.)":""}</p>
                 <button onClick={()=>marcarEntregado(ev.trabajoId)} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:"#14532d", color:"#4ade80", marginTop:"4px" }}>✅ Entregado</button>
               </div>
             </div>
