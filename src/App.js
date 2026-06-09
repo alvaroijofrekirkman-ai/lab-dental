@@ -813,7 +813,7 @@ export default function App() {
         .pill-pend { background: rgba(7,18,33,0.8); color: #4d7aba; border-color: #1e3a6e; }
         .pill-entregado { background: rgba(6,78,59,0.4); color: #4ade80; border-color: #166534; font-weight: 700; }
         .pill-convenio { background: rgba(245,158,11,0.2); color: #fbbf24; border-color: #d97706; font-weight: 700; letter-spacing: 0.5px; }
-        .card-convenio { background: linear-gradient(135deg,#0d1f3c 0%,#1c1a0f 100%); border: 2px solid #f59e0b; border-radius: 10px; box-shadow: 0 0 20px rgba(245,158,11,0.2); }
+        .card-convenio { background: #0d1f3c; border: 1px solid #1e3a6e; border-radius: 10px; }
         .pill-facturar { background: rgba(56,189,248,0.2); color: #38bdf8; border-color: #0ea5e9; font-weight: 700; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(4,10,20,0.92); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
