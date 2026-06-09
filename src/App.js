@@ -1096,28 +1096,70 @@ export default function App() {
             </div>
             {clinicas.map(c=>{
               const tCli=trabajos.filter(t=>t.clinica===c.nombre);
+              const expandida = fichaClinicaId === c.id;
+              const esConvClinica = CLINICAS_CONVENIO.includes(c.nombre);
               return (
-                <div key={c.id} className={CLINICAS_CONVENIO.includes(c.nombre)?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
-                  {CLINICAS_CONVENIO.includes(c.nombre) && <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"5px 16px", display:"flex", alignItems:"center", gap:"6px" }}>
+                <div key={c.id} className={esConvClinica?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
+                  {esConvClinica && <div style={{ background:"linear-gradient(90deg,#92400e,#d97706)", padding:"5px 16px", display:"flex", alignItems:"center", gap:"6px" }}>
                     <span style={{ fontSize:"11px", color:"#fef3c7", fontWeight:700, letterSpacing:"1px" }}>⭐ CLÍNICA CON CONVENIO</span>
                   </div>}
                   <div style={{ padding:"16px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
-                    <div>
-                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
-                        <p style={{ fontWeight:700, color:CLINICAS_CONVENIO.includes(c.nombre)?"#fbbf24":"#fff", fontSize:CLINICAS_CONVENIO.includes(c.nombre)?"15px":"14px" }}>{c.nombre}</p>
-                        <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
-                        {CLINICAS_CONVENIO.includes(c.nombre) && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
+                    <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
+                      <div>
+                        <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
+                          <p style={{ fontWeight:700, color:esConvClinica?"#fbbf24":"#fff", fontSize:esConvClinica?"15px":"14px" }}>{c.nombre}</p>
+                          <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
+                          {esConvClinica && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
+                        </div>
+                        <p style={{ fontSize:"12px", color:"#71717a" }}>{c.localidad} · {c.doctor}</p>
+                        {c.telefono && <p style={{ fontSize:"12px", color:"#52525b" }}>📞 {c.telefono}</p>}
+                        {c.direccion && <p style={{ fontSize:"11px", color:"#3f3f46" }}>{c.direccion}</p>}
                       </div>
-                      <p style={{ fontSize:"12px", color:"#71717a" }}>{c.localidad} · {c.doctor}</p>
-                      {c.telefono && <p style={{ fontSize:"12px", color:"#52525b" }}>📞 {c.telefono}</p>}
-                      {c.direccion && <p style={{ fontSize:"11px", color:"#3f3f46" }}>{c.direccion}</p>}
+                      <div style={{ textAlign:"right" }}>
+                        <p style={{ color:"#22d3ee", fontWeight:700 }}>{fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
+                        <p style={{ fontSize:"12px", color:"#52525b", marginBottom:"6px" }}>{tCli.length} trabajo{tCli.length!==1?"s":""}</p>
+                        {tCli.length > 0 && (
+                          <button onClick={()=>setFichaClinicaId(expandida?null:c.id)}
+                            style={{ fontSize:"11px", padding:"4px 12px", borderRadius:"20px", cursor:"pointer", border:"1px solid", fontFamily:"monospace", fontWeight:700,
+                              background:expandida?"#27272a":"transparent",
+                              color:expandida?"#f4f4f5":"#22d3ee",
+                              borderColor:expandida?"#52525b":"#22d3ee" }}>
+                            {expandida?"▲ Ocultar":"▼ Ver trabajos"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ textAlign:"right" }}>
-                      <p style={{ color:"#22d3ee", fontWeight:700 }}>{fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
-                      <p style={{ fontSize:"12px", color:"#52525b" }}>{tCli.length} trabajos</p>
-                    </div>
-                  </div>
+
+                    {/* DETALLE DE TRABAJOS */}
+                    {expandida && tCli.length > 0 && (
+                      <div style={{ marginTop:"16px", borderTop:"1px solid #27272a", paddingTop:"16px" }}>
+                        <p style={{ fontSize:"10px", color:"#71717a", fontWeight:700, textTransform:"uppercase", letterSpacing:"2px", marginBottom:"10px" }}>
+                          Historial de trabajos · {tCli.length} en total
+                        </p>
+                        {tCli.sort((a,b)=>a.fecha_ingreso>b.fecha_ingreso?-1:1).map((t,idx)=>(
+                          <div key={t.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"10px 0", borderBottom: idx<tCli.length-1?"1px solid #27272a":"none", gap:"12px", flexWrap:"wrap" }}>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"4px" }}>
+                                {t.nro_ot && <span style={{ fontSize:"10px", background:"#27272a", color:"#22d3ee", border:"1px solid #164e63", padding:"1px 6px", borderRadius:"3px", fontFamily:"monospace", fontWeight:700 }}>{t.nro_ot}</span>}
+                                <span style={{ fontSize:"10px", background:"#27272a", color:"#71717a", padding:"1px 6px", borderRadius:"3px" }}>{t.area}</span>
+                                <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`} style={{ fontSize:"10px", padding:"1px 6px" }}>{t.estado_pago}</span>
+                              </div>
+                              <p style={{ color:"#f4f4f5", fontSize:"13px", fontWeight:600 }}>{t.tipo}</p>
+                              {t.paciente && t.paciente!=="-" && <p style={{ color:"#52525b", fontSize:"11px" }}>Pac: {t.paciente}</p>}
+                              {t.observaciones && <p style={{ color:"#3f3f46", fontSize:"11px", fontStyle:"italic" }}>"{t.observaciones}"</p>}
+                              <div style={{ display:"flex", gap:"10px", marginTop:"3px" }}>
+                                {t.fecha_ingreso && <span style={{ fontSize:"10px", color:"#3f3f46" }}>Ing: {t.fecha_ingreso}</span>}
+                                {t.fecha_entrega && <span style={{ fontSize:"10px", color:"#3f3f46" }}>Ent: {t.fecha_entrega}</span>}
+                              </div>
+                            </div>
+                            <p style={{ color:"#22d3ee", fontWeight:700, fontSize:"14px", whiteSpace:"nowrap" }}>{fmt(t.valor)}</p>
+                          </div>
+                        ))}
+                        <div style={{ marginTop:"12px", display:"flex", justifyContent:"flex-end" }}>
+                          <p style={{ fontSize:"13px", color:"#22d3ee", fontWeight:700 }}>Total: {fmt(tCli.reduce((s,t)=>s+Number(t.valor),0))}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
