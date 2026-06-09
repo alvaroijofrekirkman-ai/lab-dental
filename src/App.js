@@ -113,7 +113,7 @@ const MESES = [
   { value: "2026-11", label: "Noviembre 2026" }, { value: "2026-12", label: "Diciembre 2026" },
 ];
 const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
-const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "PENDIENTE"];
+const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "ENTREGADO", "PENDIENTE"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
 const CLINICAS_CONVENIO = ["MAODENTAL"]; // clínicas con convenio
@@ -134,6 +134,7 @@ const PILL_CLASS = {
   "NO FACTURADO": "pill-nofact",
   "EN PROCESO": "pill-proc",
   "FACTURAR": "pill-facturar",
+  "ENTREGADO": "pill-entregado",
   "PENDIENTE": "pill-pend",
 };
 
@@ -495,9 +496,10 @@ export default function App() {
         .pill-nofact { background: rgba(127,29,29,0.5); color: #fca5a5; border-color: #7f1d1d; }
         .pill-proc { background: rgba(120,53,15,0.5); color: #fcd34d; border-color: #78350f; }
         .pill-pend { background: rgba(39,39,42,0.5); color: #a1a1aa; border-color: #3f3f46; }
+        .pill-entregado { background: rgba(6,78,59,0.4); color: #4ade80; border-color: #166534; font-weight: 700; }
         .pill-convenio { background: rgba(245,158,11,0.2); color: #fbbf24; border-color: #d97706; font-weight: 700; letter-spacing: 0.5px; }
         .card-convenio { background: linear-gradient(135deg, #18181b 0%, #1c1a0f 100%); border: 2px solid #f59e0b; border-radius: 10px; box-shadow: 0 0 16px rgba(245,158,11,0.25); }
-        .pill-facturar { background: rgba(120,53,15,0.7); color: #fb923c; border-color: #c2410c; font-weight: 700; }
+        .pill-facturar { background: rgba(29,78,216,0.3); color: #93c5fd; border-color: #1d4ed8; font-weight: 700; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
         .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
@@ -637,7 +639,7 @@ export default function App() {
                     <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
                       <span style={{ fontSize:"11px", background:"#27272a", color:"#71717a", padding:"2px 8px", borderRadius:"4px" }}>{t.area}</span>
                       <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>{t.estado_pago}</span>
-                      {t.entregado && <span style={{ fontSize:"11px", background:"rgba(20,83,45,0.5)", color:"#4ade80", border:"1px solid #166534", padding:"2px 8px", borderRadius:"20px" }}>✅ Entregado</span>}
+                      {t.entregado && <span className="pill pill-entregado">✅ Entregado</span>}
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#52525b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
                     <p style={{ fontWeight:700, color:"#fff", fontSize:"14px", marginBottom:"3px" }}>{t.tipo}</p>
