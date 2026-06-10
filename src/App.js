@@ -724,16 +724,71 @@ export default function App() {
   const [loginUser, setLoginUser] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [intentosFallidos, setIntentosFallidos] = useState(() => Number(localStorage.getItem("lab_intentos") || "0"));
+  const [bloqueadoHasta, setBloqueadoHasta] = useState(() => Number(localStorage.getItem("lab_bloqueado") || "0"));
+  const MAX_INTENTOS = 3;
+  const MINUTOS_BLOQUEO = 5;
+
+  // ── OPCIÓN 3: Cierre automático por inactividad ─────────────────
+  const MINUTOS_INACTIVIDAD = 15;
+  useEffect(() => {
+    if (!logueado) return;
+    let timer;
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        sessionStorage.removeItem("lab_auth");
+        sessionStorage.removeItem("lab_usuario");
+        setLogueado(false);
+        alert("Sesión cerrada por inactividad (15 min).");
+      }, MINUTOS_INACTIVIDAD * 60 * 1000);
+    };
+    const eventos = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    eventos.forEach(e => window.addEventListener(e, resetTimer));
+    resetTimer();
+    return () => {
+      clearTimeout(timer);
+      eventos.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [logueado]);
 
   const handleLogin = () => {
+    const ahora = Date.now();
+    // Verificar si está bloqueado
+    if (bloqueadoHasta > ahora) {
+      const restante = Math.ceil((bloqueadoHasta - ahora) / 60000);
+      setLoginError(`Cuenta bloqueada. Intenta en ${restante} minuto${restante !== 1 ? "s" : ""}.`);
+      return;
+    }
     if (USUARIOS.some(u => u.usuario === loginUser && u.clave === loginPass)) {
+      // Login exitoso — limpiar intentos
+      localStorage.removeItem("lab_intentos");
+      localStorage.removeItem("lab_bloqueado");
+      setIntentosFallidos(0);
+      setBloqueadoHasta(0);
       sessionStorage.setItem("lab_auth", "ok");
       const nombreUsuario = loginUser === "20.1821.180-0" ? "Álvaro" : "Mayra";
       sessionStorage.setItem("lab_usuario", nombreUsuario);
+      // ── OPCIÓN 4: Registrar acceso ──────────────────────────────
+      const accesos = JSON.parse(localStorage.getItem("lab_accesos") || "[]");
+      accesos.push({ usuario: nombreUsuario, fecha: new Date().toLocaleString("es-CL"), accion: "LOGIN" });
+      if (accesos.length > 50) accesos.splice(0, accesos.length - 50);
+      localStorage.setItem("lab_accesos", JSON.stringify(accesos));
       setLogueado(true);
       setLoginError("");
     } else {
-      setLoginError("Usuario o contraseña incorrectos");
+      // Login fallido
+      const nuevosIntentos = intentosFallidos + 1;
+      setIntentosFallidos(nuevosIntentos);
+      localStorage.setItem("lab_intentos", String(nuevosIntentos));
+      if (nuevosIntentos >= MAX_INTENTOS) {
+        const hasta = Date.now() + MINUTOS_BLOQUEO * 60 * 1000;
+        setBloqueadoHasta(hasta);
+        localStorage.setItem("lab_bloqueado", String(hasta));
+        setLoginError(`Demasiados intentos. Cuenta bloqueada por ${MINUTOS_BLOQUEO} minutos.`);
+      } else {
+        setLoginError(`Usuario o contraseña incorrectos. Intento ${nuevosIntentos}/${MAX_INTENTOS}.`);
+      }
     }
   };
 
@@ -844,7 +899,13 @@ export default function App() {
             )}
           </div>
           <div style={{ textAlign:"right" }}>
-            <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.8)" }}>Álvaro Jofre K.</p>
+            <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.8)", cursor:"pointer" }} onClick={()=>{
+              sessionStorage.removeItem("lab_auth"); sessionStorage.removeItem("lab_usuario");
+              const accesos = JSON.parse(localStorage.getItem("lab_accesos") || "[]");
+              accesos.push({ usuario: usuarioActual, fecha: new Date().toLocaleString("es-CL"), accion: "LOGOUT" });
+              localStorage.setItem("lab_accesos", JSON.stringify(accesos));
+              setLogueado(false);
+            }}>🔓 {usuarioActual} · Salir</p>
             {stockBajo.length > 0 && <p style={{ fontSize:"11px", color:"#f59e0b", fontWeight:700 }}>⚠ {stockBajo.length} stock bajo</p>}
           </div>
         </div>
@@ -891,7 +952,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #bae6fd", display:"flex", overflowX:"auto", background:"#f0f9ff" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["facturas","🧾 Facturas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"],["accesos","🔐 Accesos"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -2490,6 +2551,47 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                   </div>
                 </div>
               )}
+            </div>
+          );
+        })()}
+
+
+        {/* ════ ACCESOS ════ */}
+        {tab === "accesos" && (() => {
+          const accesos = JSON.parse(localStorage.getItem("lab_accesos") || "[]").reverse();
+          const limpiar = () => { if (window.confirm("¿Limpiar historial de accesos?")) { localStorage.removeItem("lab_accesos"); setTab("dashboard"); setTimeout(()=>setTab("accesos"),10); }};
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340" }}>🔐 Registro de Accesos</p>
+                  <p style={{ fontSize:"12px", color:"#64748b" }}>{accesos.length} acceso{accesos.length!==1?"s":""} registrado{accesos.length!==1?"s":""}</p>
+                </div>
+                {accesos.length > 0 && <button className="btng" onClick={limpiar} style={{ fontSize:"12px" }}>🗑 Limpiar historial</button>}
+              </div>
+              <div className="card" style={{ padding:"14px", borderColor:"#7dd3fc" }}>
+                <p style={{ fontSize:"12px", color:"#0369a1" }}>
+                  💡 Se registran los últimos 50 accesos. El cierre automático ocurre tras <strong>15 min</strong> de inactividad. Bloqueo tras <strong>3 intentos</strong> fallidos (<strong>5 min</strong>).
+                </p>
+              </div>
+              {accesos.length === 0 && (
+                <div className="card" style={{ padding:"40px", textAlign:"center", color:"#64748b" }}>
+                  <p style={{ fontSize:"32px", marginBottom:"8px" }}>🔐</p>
+                  <p>Sin accesos registrados aún</p>
+                </div>
+              )}
+              {accesos.map((a, idx) => (
+                <div key={idx} className="card" style={{ padding:"14px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:"12px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                    <div style={{ fontSize:"24px" }}>{a.usuario === "Álvaro" ? "👨‍⚕️" : "👩‍⚕️"}</div>
+                    <div>
+                      <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{a.usuario}</p>
+                      <p style={{ fontSize:"12px", color:"#64748b" }}>{a.fecha}</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize:"11px", background:"#dcfce7", color:"#166534", border:"1px solid #86efac", padding:"3px 10px", borderRadius:"20px", fontWeight:700 }}>{a.accion}</span>
+                </div>
+              ))}
             </div>
           );
         })()}
