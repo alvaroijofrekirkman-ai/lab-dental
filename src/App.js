@@ -1173,29 +1173,6 @@ export default function App() {
                 </div>
               );
             })()}
-            {gastosFiltrados.length===0 && <div className="card" style={{ padding:"40px", textAlign:"center", color:"#64748b" }}>Sin gastos este mes</div>}
-            {gastosFiltrados.map(g=>(
-              <div key={g.id} className="card" style={{ padding:"16px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", gap:"12px" }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:"flex", gap:"6px", marginBottom:"6px", flexWrap:"wrap" }}>
-                      <span style={{ fontSize:"11px", background:"#f8fcff", color:"#64748b", padding:"2px 8px", borderRadius:"4px" }}>{g.categoria}</span>
-                      <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"4px", background: g.tipo_gasto==="Fijo"?"rgba(127,29,29,0.5)": g.tipo_gasto==="Variable"?"rgba(124,45,18,0.5)":"rgba(76,29,149,0.5)", color: g.tipo_gasto==="Fijo"?"#f87171": g.tipo_gasto==="Variable"?"#fb923c":"#a78bfa" }}>{g.tipo_gasto||"Variable"}</span>
-                    </div>
-                    <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{g.descripcion}</p>
-                    <p style={{ fontSize:"12px", color:"#64748b" }}>{g.cantidad} {g.medida} × {fmt(g.valor_unit||0)}</p>
-                    {g.proveedor && <p style={{ fontSize:"12px", color:"#bae6fd" }}>Prov: {g.proveedor}</p>}
-                  </div>
-                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
-                    <p style={{ color:"#f87171", fontWeight:700, fontSize:"16px" }}>{fmt(g.valor_total||0)}</p>
-                    <div style={{ display:"flex", gap:"4px" }}>
-                      <button className="bsm" onClick={()=>editG(g)}>✏️</button>
-                      <button className="bsm" style={{ color:"#f87171" }} onClick={()=>delG(g.id)}>🗑</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
             {/* ── GRÁFICO DE GASTOS POR CATEGORÍA ── */}
             {gastosFiltrados.length > 0 && (() => {
               const porCat = {};
@@ -1300,6 +1277,30 @@ export default function App() {
               );
             })()}
 
+
+            {gastosFiltrados.length===0 && <div className="card" style={{ padding:"40px", textAlign:"center", color:"#64748b" }}>Sin gastos este mes</div>}
+            {gastosFiltrados.map(g=>(
+              <div key={g.id} className="card" style={{ padding:"16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", gap:"12px" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", gap:"6px", marginBottom:"6px", flexWrap:"wrap" }}>
+                      <span style={{ fontSize:"11px", background:"#f8fcff", color:"#64748b", padding:"2px 8px", borderRadius:"4px" }}>{g.categoria}</span>
+                      <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"4px", background: g.tipo_gasto==="Fijo"?"rgba(127,29,29,0.5)": g.tipo_gasto==="Variable"?"rgba(124,45,18,0.5)":"rgba(76,29,149,0.5)", color: g.tipo_gasto==="Fijo"?"#f87171": g.tipo_gasto==="Variable"?"#fb923c":"#a78bfa" }}>{g.tipo_gasto||"Variable"}</span>
+                    </div>
+                    <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{g.descripcion}</p>
+                    <p style={{ fontSize:"12px", color:"#64748b" }}>{g.cantidad} {g.medida} × {fmt(g.valor_unit||0)}</p>
+                    {g.proveedor && <p style={{ fontSize:"12px", color:"#bae6fd" }}>Prov: {g.proveedor}</p>}
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
+                    <p style={{ color:"#f87171", fontWeight:700, fontSize:"16px" }}>{fmt(g.valor_total||0)}</p>
+                    <div style={{ display:"flex", gap:"4px" }}>
+                      <button className="bsm" onClick={()=>editG(g)}>✏️</button>
+                      <button className="bsm" style={{ color:"#f87171" }} onClick={()=>delG(g.id)}>🗑</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
             {showFormG && (
               <div className="overlay">
                 <div className="modal">
