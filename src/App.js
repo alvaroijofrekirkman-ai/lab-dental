@@ -1196,6 +1196,110 @@ export default function App() {
                 </div>
               </div>
             ))}
+            {/* ── GRÁFICO DE GASTOS POR CATEGORÍA ── */}
+            {gastosFiltrados.length > 0 && (() => {
+              const porCat = {};
+              gastosFiltrados.forEach(g => {
+                porCat[g.categoria] = (porCat[g.categoria] || 0) + Number(g.valor_total || 0);
+              });
+              const total = Object.values(porCat).reduce((s,v)=>s+v,0);
+              const COLORES = {
+                "Insumos":    { bg:"#0ea5e9", light:"#e0f2fe" },
+                "Servicios":  { bg:"#a855f7", light:"#f3e8ff" },
+                "Arriendo":   { bg:"#f59e0b", light:"#fef3c7" },
+                "Transporte": { bg:"#10b981", light:"#d1fae5" },
+                "Maquinaria": { bg:"#f87171", light:"#fee2e2" },
+                "Otro":       { bg:"#64748b", light:"#f1f5f9" },
+              };
+              const entries = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+              const maxVal = entries[0]?.[1] || 1;
+              return (
+                <div className="card" style={{ padding:"16px", marginTop:"4px" }}>
+                  <p className="tf" style={{ fontSize:"10px", fontWeight:700, color:"#64748b", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"16px" }}>
+                    📊 Distribución de gastos · {mesLabel(filtroMes)}
+                  </p>
+
+                  {/* Barras horizontales */}
+                  <div style={{ display:"flex", flexDirection:"column", gap:"10px", marginBottom:"20px" }}>
+                    {entries.map(([cat, val]) => {
+                      const col = COLORES[cat] || COLORES["Otro"];
+                      const pct = Math.round(val / total * 100);
+                      const barW = Math.round(val / maxVal * 100);
+                      return (
+                        <div key={cat}>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"4px" }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                              <div style={{ width:"10px", height:"10px", borderRadius:"3px", background:col.bg, flexShrink:0 }}/>
+                              <span style={{ fontSize:"12px", color:"#0c2340", fontWeight:600 }}>{cat}</span>
+                            </div>
+                            <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+                              <span style={{ fontSize:"12px", color:"#0369a1", fontWeight:700 }}>
+                                {new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(val)}
+                              </span>
+                              <span style={{ fontSize:"11px", color:"#64748b", minWidth:"32px", textAlign:"right" }}>{pct}%</span>
+                            </div>
+                          </div>
+                          <div style={{ background:"#f0f9ff", borderRadius:"99px", height:"10px", overflow:"hidden" }}>
+                            <div style={{ background:col.bg, height:"10px", borderRadius:"99px", width:`${barW}%`, transition:"width 0.5s" }}/>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Donut visual con segmentos CSS */}
+                  <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:"32px", flexWrap:"wrap" }}>
+                    <div style={{ position:"relative", width:"120px", height:"120px", flexShrink:0 }}>
+                      {(() => {
+                        let offset = 0;
+                        const r = 45, cx = 60, cy = 60;
+                        const circum = 2 * Math.PI * r;
+                        return (
+                          <svg viewBox="0 0 120 120" style={{ transform:"rotate(-90deg)" }}>
+                            {entries.map(([cat, val]) => {
+                              const col = COLORES[cat] || COLORES["Otro"];
+                              const pct = val / total;
+                              const dash = pct * circum;
+                              const gap = circum - dash;
+                              const el = (
+                                <circle key={cat} cx={cx} cy={cy} r={r}
+                                  fill="none" stroke={col.bg} strokeWidth="22"
+                                  strokeDasharray={`${dash} ${gap}`}
+                                  strokeDashoffset={-offset * circum}/>
+                              );
+                              offset += pct;
+                              return el;
+                            })}
+                            <circle cx={cx} cy={cy} r="34" fill="white"/>
+                          </svg>
+                        );
+                      })()}
+                      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+                        <p style={{ fontSize:"10px", color:"#64748b", lineHeight:1 }}>Total</p>
+                        <p style={{ fontSize:"12px", fontWeight:700, color:"#0c2340", lineHeight:1.2, textAlign:"center" }}>
+                          {new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(total)}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Leyenda */}
+                    <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+                      {entries.map(([cat, val]) => {
+                        const col = COLORES[cat] || COLORES["Otro"];
+                        const pct = Math.round(val / total * 100);
+                        return (
+                          <div key={cat} style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                            <div style={{ width:"12px", height:"12px", borderRadius:"3px", background:col.bg, flexShrink:0 }}/>
+                            <span style={{ fontSize:"12px", color:"#0c2340" }}>{cat}</span>
+                            <span style={{ fontSize:"11px", color:"#64748b" }}>{pct}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {showFormG && (
               <div className="overlay">
                 <div className="modal">
