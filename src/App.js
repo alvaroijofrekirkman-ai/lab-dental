@@ -140,7 +140,7 @@ const PILL_CLASS = {
 };
 
 const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "", nro_ot: "" };
-const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "" };
+const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "", fecha: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
 
 // ── ARANCEL PLANO (para autocompletar) ──────────────────────────
@@ -1289,7 +1289,8 @@ export default function App() {
                     </div>
                     <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{g.descripcion}</p>
                     <p style={{ fontSize:"12px", color:"#64748b" }}>{g.cantidad} {g.medida} × {fmt(g.valor_unit||0)}</p>
-                    {g.proveedor && <p style={{ fontSize:"12px", color:"#bae6fd" }}>Prov: {g.proveedor}</p>}
+                    {g.proveedor && <p style={{ fontSize:"12px", color:"#64748b" }}>Prov: {g.proveedor}</p>}
+                    {g.fecha && <p style={{ fontSize:"11px", color:"#94a3b8" }}>📅 {g.fecha}</p>}
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
                     <p style={{ color:"#f87171", fontWeight:700, fontSize:"16px" }}>{fmt(g.valor_total||0)}</p>
@@ -1318,7 +1319,10 @@ export default function App() {
                     <div><label className="lbl">Valor unitario ($)</label><input type="number" className="inp" value={formG.valor_unit} onChange={e=>setFormG(f=>({...f,valor_unit:e.target.value,valor_total:Number(f.cantidad)*Number(e.target.value)}))}/></div>
                     <div><label className="lbl">Total ($)</label><input type="number" className="inp" value={formG.valor_total} onChange={e=>setFormG(f=>({...f,valor_total:e.target.value}))}/></div>
                   </div>
-                  <div style={{ marginBottom:"12px" }}><label className="lbl">Proveedor</label><input className="inp" value={formG.proveedor} onChange={e=>setFormG(f=>({...f,proveedor:e.target.value}))}/></div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                    <div><label className="lbl">Proveedor</label><input className="inp" value={formG.proveedor} onChange={e=>setFormG(f=>({...f,proveedor:e.target.value}))}/></div>
+                    <div><label className="lbl">Fecha</label><input type="date" className="inp" value={formG.fecha||""} onChange={e=>setFormG(f=>({...f,fecha:e.target.value}))}/></div>
+                  </div>
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Observaciones</label><textarea className="inp" rows={2} value={formG.observaciones} onChange={e=>setFormG(f=>({...f,observaciones:e.target.value}))}/></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
                     <button className="btng" onClick={()=>{setShowFormG(false);setEditandoG(null);}}>Cancelar</button>
