@@ -687,7 +687,7 @@ export default function App() {
     const datos = { trabajos, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad, cotizaciones: next };
     guardarDatos(datos);
     setShowFormCot(false); setEditandoCot(null);
-    setFormCot({ clinica:"", doctor:"", fecha:"", validez:"30", observaciones:"", items:[] });
+    setFormCot({ clinica:"", doctor:"", fecha:"", validez:"30", observaciones:"", items:[], tipo_precio:"normal" });
   };
   const delCot = (id) => {
     if (!window.confirm("¿Eliminar cotización?")) return;
@@ -2306,47 +2306,47 @@ export default function App() {
           const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
 
           const ARANCEL_COT = [
-            { nombre:"Placa de Expansión o Schwartz", precio:40000, area:"Ortodoncia" },
-            { nombre:"Placa de Contención (acetato)", precio:35000, area:"Ortodoncia" },
-            { nombre:"Disyuntor Mc.Namara", precio:60000, area:"Ortodoncia" },
-            { nombre:"Disyuntor Hyrax", precio:60000, area:"Ortodoncia" },
-            { nombre:"Botón de Nance", precio:40000, area:"Ortodoncia" },
-            { nombre:"Mantenedor de espacio", precio:30000, area:"Ortodoncia" },
-            { nombre:"Placa de Contención Hawley", precio:40000, area:"Ortodoncia" },
-            { nombre:"Aparato de Mauricio", precio:46000, area:"Ortodoncia" },
-            { nombre:"Contención de Begg", precio:46000, area:"Ortodoncia" },
-            { nombre:"Disyuntor Hass", precio:58000, area:"Ortodoncia" },
-            { nombre:"Barra Lingual de Nance", precio:40000, area:"Ortodoncia" },
-            { nombre:"Quad Helix", precio:50000, area:"Ortodoncia" },
-            { nombre:"Barra Transpalatina (TPA)", precio:38000, area:"Ortodoncia" },
-            { nombre:"Bionator 1", precio:88000, area:"Ortodoncia" },
-            { nombre:"Reparación simple ortodoncia", precio:15000, area:"Ortodoncia" },
-            { nombre:"Reparación compleja ortodoncia", precio:20000, area:"Ortodoncia" },
-            { nombre:"Prótesis parcial", precio:65000, area:"Removible" },
-            { nombre:"Prótesis total", precio:65000, area:"Removible" },
-            { nombre:"Prótesis con base metálica", precio:100000, area:"Removible" },
-            { nombre:"Prótesis flexible", precio:90000, area:"Removible" },
-            { nombre:"Rebasado total o parcial", precio:30000, area:"Removible" },
-            { nombre:"Reparación simple prótesis", precio:25000, area:"Removible" },
-            { nombre:"Plano de relajación acrílico", precio:50000, area:"Plano" },
-            { nombre:"Plano Estampado", precio:35000, area:"Plano" },
-            { nombre:"Cubetillas de blanqueamiento", precio:24000, area:"Plano" },
-            { nombre:"Protector bucal simple", precio:40000, area:"Plano" },
-            { nombre:"Protector bucal doble", precio:55000, area:"Plano" },
-            { nombre:"Impresión 3D 1 Arcada", precio:10000, area:"3D" },
-            { nombre:"Impresión 3D 2 Arcadas", precio:12000, area:"3D" },
-            { nombre:"Plano de relajación 3D", precio:70000, area:"3D" },
-            { nombre:"Corona periférica (resina)", precio:50000, area:"Fija" },
-            { nombre:"Carillas (resina)", precio:45000, area:"Fija" },
-            { nombre:"Incrustación onlay (resina)", precio:40000, area:"Fija" },
-            { nombre:"Incrustación inlay (resina)", precio:33000, area:"Fija" },
-            { nombre:"PFU Zirconio (por pieza)", precio:108000, area:"Fija" },
-            { nombre:"Corona Zirconio", precio:107000, area:"Fija" },
-            { nombre:"Carillas Zirconio", precio:100000, area:"Fija" },
-            { nombre:"Corona sobre implante Zirconio", precio:123000, area:"Fija" },
-            { nombre:"Corona E.MAX", precio:100000, area:"Fija" },
-            { nombre:"Carillas E.MAX", precio:95000, area:"Fija" },
-            { nombre:"Incrustación E.MAX", precio:94000, area:"Fija" },
+            { nombre:"Placa de Expansión o Schwartz", precio:40000, convenio:36000, area:"Ortodoncia" },
+            { nombre:"Placa de Contención (acetato)", precio:35000, convenio:32000, area:"Ortodoncia" },
+            { nombre:"Disyuntor Mc.Namara", precio:60000, convenio:57000, area:"Ortodoncia" },
+            { nombre:"Disyuntor Hyrax", precio:60000, convenio:58000, area:"Ortodoncia" },
+            { nombre:"Botón de Nance", precio:40000, convenio:38000, area:"Ortodoncia" },
+            { nombre:"Mantenedor de espacio", precio:30000, convenio:27000, area:"Ortodoncia" },
+            { nombre:"Placa de Contención Hawley", precio:40000, convenio:38000, area:"Ortodoncia" },
+            { nombre:"Aparato de Mauricio", precio:46000, convenio:42000, area:"Ortodoncia" },
+            { nombre:"Contención de Begg", precio:46000, convenio:46000, area:"Ortodoncia" },
+            { nombre:"Disyuntor Hass", precio:58000, convenio:55000, area:"Ortodoncia" },
+            { nombre:"Barra Lingual de Nance", precio:40000, convenio:37000, area:"Ortodoncia" },
+            { nombre:"Quad Helix", precio:50000, convenio:46000, area:"Ortodoncia" },
+            { nombre:"Barra Transpalatina (TPA)", precio:38000, convenio:35000, area:"Ortodoncia" },
+            { nombre:"Bionator 1", precio:88000, convenio:85000, area:"Ortodoncia" },
+            { nombre:"Reparación simple ortodoncia", precio:15000, convenio:15000, area:"Ortodoncia" },
+            { nombre:"Reparación compleja ortodoncia", precio:20000, convenio:20000, area:"Ortodoncia" },
+            { nombre:"Prótesis parcial", precio:65000, convenio:52000, area:"Removible" },
+            { nombre:"Prótesis total", precio:65000, convenio:52000, area:"Removible" },
+            { nombre:"Prótesis con base metálica", precio:100000, convenio:92000, area:"Removible" },
+            { nombre:"Prótesis flexible", precio:90000, convenio:85000, area:"Removible" },
+            { nombre:"Rebasado total o parcial", precio:30000, convenio:28000, area:"Removible" },
+            { nombre:"Reparación simple prótesis", precio:25000, convenio:22000, area:"Removible" },
+            { nombre:"Plano de relajación acrílico", precio:50000, convenio:45000, area:"Plano" },
+            { nombre:"Plano Estampado", precio:35000, convenio:30000, area:"Plano" },
+            { nombre:"Cubetillas de blanqueamiento", precio:24000, convenio:20000, area:"Plano" },
+            { nombre:"Protector bucal simple", precio:40000, convenio:35000, area:"Plano" },
+            { nombre:"Protector bucal doble", precio:55000, convenio:50000, area:"Plano" },
+            { nombre:"Impresión 3D 1 Arcada", precio:10000, convenio:9000, area:"3D" },
+            { nombre:"Impresión 3D 2 Arcadas", precio:12000, convenio:10000, area:"3D" },
+            { nombre:"Plano de relajación 3D", precio:70000, convenio:65000, area:"3D" },
+            { nombre:"Corona periférica (resina)", precio:50000, convenio:50000, area:"Fija" },
+            { nombre:"Carillas (resina)", precio:45000, convenio:45000, area:"Fija" },
+            { nombre:"Incrustación onlay (resina)", precio:40000, convenio:40000, area:"Fija" },
+            { nombre:"Incrustación inlay (resina)", precio:33000, convenio:33000, area:"Fija" },
+            { nombre:"PFU Zirconio (por pieza)", precio:108000, convenio:108000, area:"Fija" },
+            { nombre:"Corona Zirconio", precio:107000, convenio:107000, area:"Fija" },
+            { nombre:"Carillas Zirconio", precio:100000, convenio:100000, area:"Fija" },
+            { nombre:"Corona sobre implante Zirconio", precio:123000, convenio:123000, area:"Fija" },
+            { nombre:"Corona E.MAX", precio:100000, convenio:100000, area:"Fija" },
+            { nombre:"Carillas E.MAX", precio:95000, convenio:95000, area:"Fija" },
+            { nombre:"Incrustación E.MAX", precio:94000, convenio:94000, area:"Fija" },
           ];
 
           const ESTADO_COT = {
@@ -2442,6 +2442,7 @@ export default function App() {
     <div class="cot-num">${cot.nro || "COT-001"}</div>
     <div class="cot-fecha">Fecha: ${fecha}</div>
     <div class="cot-validez">Válida por ${cot.validez || "30"} días</div>
+    ${cot.tipo_precio==="convenio" ? '<div style="margin-top:6px;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:3px 8px;font-size:11px;color:#92400e;font-weight:700;display:inline-block">⭐ Precio Convenio</div>' : ''}
   </div>
 </div>
 
@@ -2499,7 +2500,7 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                   <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340" }}>📄 Cotizador</p>
                   <p style={{ fontSize:"12px", color:"#64748b" }}>{cotizaciones.length} cotización{cotizaciones.length!==1?"es":""} guardada{cotizaciones.length!==1?"s":""}</p>
                 </div>
-                <button className="btn1" onClick={()=>{ setFormCot({ clinica:"", doctor:"", fecha:new Date().toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}), validez:"30", observaciones:"", items:[] }); setEditandoCot(null); setShowFormCot(true); }}>+ Nueva cotización</button>
+                <button className="btn1" onClick={()=>{ setFormCot({ clinica:"", doctor:"", fecha:new Date().toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}), validez:"30", observaciones:"", items:[], tipo_precio:"normal" }); setEditandoCot(null); setShowFormCot(true); }}>+ Nueva cotización</button>
               </div>
 
               {/* LISTA DE COTIZACIONES */}
@@ -2519,6 +2520,7 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                         <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px", alignItems:"center" }}>
                           <span style={{ fontSize:"11px", background:"#f8fcff", color:"#0ea5e9", border:"1px solid #7dd3fc", padding:"2px 8px", borderRadius:"4px", fontFamily:"monospace", fontWeight:700 }}>{cot.nro}</span>
                           <span style={{ fontSize:"11px", background:est.bg, color:est.color, border:`1px solid ${est.border}`, padding:"2px 8px", borderRadius:"20px" }}>{cot.estado}</span>
+                          {cot.tipo_precio==="convenio" && <span style={{ fontSize:"11px", background:"#fef3c7", color:"#92400e", border:"1px solid #fcd34d", padding:"2px 8px", borderRadius:"20px", fontWeight:700 }}>⭐ Convenio</span>}
                           <span style={{ fontSize:"11px", color:"#64748b" }}>{cot.fecha_creacion}</span>
                         </div>
                         <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{cot.clinica || "Sin clínica"}</p>
@@ -2584,6 +2586,25 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                       </div>
                     </div>
 
+                    {/* Selector tipo precio */}
+                    <label className="lbl">Tipo de precio</label>
+                    <div style={{ display:"flex", gap:"8px", marginBottom:"14px" }}>
+                      {[["normal","📋 Arancel Normal","#0369a1","#e0f2fe"],["convenio","⭐ Precio Convenio","#92400e","#fef3c7"]].map(([val,lbl,color,bg])=>(
+                        <button key={val} onClick={()=>{
+                          setFormCot(f=>({...f, tipo_precio:val,
+                            items: f.items.map(it=>({...it, precio: val==="convenio" ? (ARANCEL_COT.find(a=>a.nombre===it.nombre)?.convenio || it.precio) : (ARANCEL_COT.find(a=>a.nombre===it.nombre)?.precio || it.precio) }))
+                          }));
+                        }} style={{ flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer", border:`2px solid ${formCot.tipo_precio===val?color:"#bae6fd"}`, background:formCot.tipo_precio===val?bg:"#ffffff", color:formCot.tipo_precio===val?color:"#64748b", fontFamily:"monospace", fontSize:"12px", fontWeight:formCot.tipo_precio===val?700:400, transition:"all 0.2s" }}>
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                    {formCot.tipo_precio==="convenio" && (
+                      <div style={{ background:"#fef3c7", border:"1px solid #fcd34d", borderRadius:"6px", padding:"8px 12px", marginBottom:"12px", fontSize:"11px", color:"#92400e" }}>
+                        ⭐ Aplicando precios de convenio. Área Fija mantiene precio normal.
+                      </div>
+                    )}
+
                     {/* Buscador de items */}
                     <label className="lbl">Agregar trabajos al presupuesto</label>
                     <input className="inp" style={{ marginBottom:"8px" }} placeholder="🔍 Buscar trabajo del arancel..." value={busqCotItem} onChange={e=>setBusqCotItem(e.target.value)}/>
@@ -2592,11 +2613,13 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                       <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:"8px", maxHeight:"180px", overflowY:"auto", marginBottom:"12px" }}>
                         {ARANCEL_COT.filter(a=>a.nombre.toLowerCase().includes(busqCotItem.toLowerCase())).map((a,idx)=>(
                           <div key={idx} onClick={()=>{
+                            const precioUsar = formCot.tipo_precio==="convenio" ? (a.convenio || a.precio) : a.precio;
+                            const itemConPrecio = {...a, precio: precioUsar, cantidad:1};
                             const exists = formCot.items.findIndex(i=>i.nombre===a.nombre);
                             if (exists>=0) {
                               setFormCot(f=>({...f, items: f.items.map((it,i)=>i===exists?{...it,cantidad:it.cantidad+1}:it)}));
                             } else {
-                              setFormCot(f=>({...f, items:[...f.items, {...a, cantidad:1}]}));
+                              setFormCot(f=>({...f, items:[...f.items, itemConPrecio]}));
                             }
                             setBusqCotItem("");
                           }} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", borderBottom:"1px solid #bae6fd", cursor:"pointer" }}
