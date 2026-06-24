@@ -263,7 +263,7 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
       return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
     });
     setTrabajos(next);
-    guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas);
+    guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
   };
 
   const saveEv = () => {
@@ -567,7 +567,7 @@ export default function App() {
       cotizaciones: cotizaciones,
     });
     setTimeout(() => setGuardando(false), 1200);
-  }, [capitalBase, facturas, eventos, metas, deudas, actividad]);
+  }, [capitalBase, facturas, eventos, metas, deudas, actividad, cotizaciones]);
 
   const stats = useMemo(() => {
     const porMes = {};
@@ -608,24 +608,24 @@ export default function App() {
       const estadoFinal = !nuevoEntregado && t.estado_pago === "FACTURAR" ? "EN PROCESO" : nuevoEstado;
       return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
     });
-    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario);
+    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
   };
 
   const saveT = () => {
     const nextId = Math.max(0, ...trabajos.map(x => x.id)) + 1;
     const nextOt = editandoT !== null ? formT.nro_ot : `OT-${String(nextId).padStart(3,"0")}`;
     let next = editandoT !== null ? trabajos.map(t => t.id === editandoT ? { ...formT, id: editandoT } : t) : [...trabajos, { ...formT, id: nextId, nro_ot: nextOt }];
-    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario);
+    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
     setShowFormT(false); setEditandoT(null); setFormT(emptyT);
   };
   const editT = (t) => { setFormT({ ...t }); setEditandoT(t.id); setShowFormT(true); };
-  const delT = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = trabajos.filter(t => t.id !== id); setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario); };
+  const delT = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = trabajos.filter(t => t.id !== id); setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad); };
 
   const saveC = () => {
     let next = editandoC !== null
       ? clinicas.map(x => x.id === editandoC ? { ...formC, id: editandoC } : x)
       : [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
-    setClinicas(next); guardarTodo(trabajos, next, gastos, inventario);
+    setClinicas(next); guardarTodo(trabajos, next, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
     setShowFormC(false); setEditandoC(null); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
   };
   const editC = (c) => { setFormC({ ...c }); setEditandoC(c.id); setShowFormC(true); };
@@ -634,20 +634,20 @@ export default function App() {
     const vt = formG.valor_total || (Number(formG.cantidad) * Number(formG.valor_unit));
     const g = { ...formG, valor_total: vt };
     let next = editandoG !== null ? gastos.map(x => x.id === editandoG ? { ...g, id: editandoG } : x) : [...gastos, { ...g, id: Math.max(0, ...gastos.map(x => x.id)) + 1 }];
-    setGastos(next); guardarTodo(trabajos, clinicas, next, inventario);
+    setGastos(next); guardarTodo(trabajos, clinicas, next, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
     setShowFormG(false); setEditandoG(null); setFormG(emptyG);
   };
   const editG = (g) => { setFormG({ ...g }); setEditandoG(g.id); setShowFormG(true); };
-  const delG = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = gastos.filter(g => g.id !== id); setGastos(next); guardarTodo(trabajos, clinicas, next, inventario); };
+  const delG = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = gastos.filter(g => g.id !== id); setGastos(next); guardarTodo(trabajos, clinicas, next, inventario, capitalBase, facturas, eventos, metas, deudas, actividad); };
 
   const saveI = () => {
     let next = editandoI !== null ? inventario.map(x => x.id === editandoI ? { ...formI, id: editandoI } : x) : [...inventario, { ...formI, id: Math.max(0, ...inventario.map(x => x.id)) + 1 }];
-    setInventario(next); guardarTodo(trabajos, clinicas, gastos, next);
+    setInventario(next); guardarTodo(trabajos, clinicas, gastos, next, capitalBase, facturas, eventos, metas, deudas, actividad);
     setShowFormI(false); setEditandoI(null); setFormI(emptyI);
   };
   const editI = (i) => { setFormI({ ...i }); setEditandoI(i.id); setShowFormI(true); };
-  const delI = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = inventario.filter(i => i.id !== id); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
-  const ajustar = (id, delta) => { const next = inventario.map(i => i.id === id ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next); };
+  const delI = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = inventario.filter(i => i.id !== id); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next, capitalBase, facturas, eventos, metas, deudas, actividad); };
+  const ajustar = (id, delta) => { const next = inventario.map(i => i.id === id ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i); setInventario(next); guardarTodo(trabajos, clinicas, gastos, next, capitalBase, facturas, eventos, metas, deudas, actividad); };
 
   // ── HANDLERS FACTURAS ──
   const saveF = () => {
