@@ -45,6 +45,7 @@ const CLINICAS_INICIALES = [
   { id: 7, nombre: "CLINICA KUTRALKO", localidad: "Villarrica", doctor: "Alarcon", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
   { id: 8, nombre: "CLINICA DENTALIZ", localidad: "Villarrica", doctor: "Licet Salazar", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
   { id: 9, nombre: "CLINICA ZX PUCON", localidad: "Pucón", doctor: "", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
+  { id: 10, nombre: "CLINICA LOS PIRINEOS", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "CLIENTE", convenio: true },
 ];
 
 const TRABAJOS_INICIALES = [
@@ -117,7 +118,7 @@ const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
 const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "ENTREGADO", "PENDIENTE"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
-const CLINICAS_CONVENIO = ["MAODENTAL"]; // clínicas con convenio
+const CLINICAS_CONVENIO = ["MAODENTAL", "CLINICA LOS PIRINEOS"]; // clínicas con convenio
 
 const fmt = (n) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
 const mesLabel = (v) => MESES.find(m => m.value === v)?.label || v;
