@@ -2432,32 +2432,33 @@ export default function App() {
   .footer { text-align:center; padding-top:20px; border-top:1px solid #e2e8f0; }
   .footer p { font-size:11px; color:#94a3b8; margin-bottom:3px; }
   .footer .gracias { font-size:13px; font-weight:700; color:#0ea5e9; margin-bottom:6px; }
-  /* Segunda página - Transferencia estilo moderno */
-  .transfer-page { page-break-before:always; font-family:Arial,sans-serif; background:#f0f4f0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; }
-  .transfer-card { background:#fff; border-radius:20px; overflow:hidden; max-width:440px; width:100%; margin:0 auto; box-shadow:0 8px 32px rgba(0,0,0,0.12); }
-  .transfer-card-header { background:linear-gradient(135deg,#1a3a2e 0%,#2d5a42 100%); padding:32px 28px; position:relative; }
-  .transfer-tooth { font-size:32px; margin-bottom:12px; display:block; }
-  .transfer-tag { font-size:10px; font-weight:700; color:#a3c4a8; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; }
-  .transfer-empresa { font-size:26px; font-weight:900; color:#ffffff; margin-bottom:4px; }
-  .transfer-tipo { font-size:13px; color:#a3c4a8; }
-  .transfer-body { padding:28px; }
-  .transfer-section-title { font-size:10px; font-weight:700; color:#b8a882; text-transform:uppercase; letter-spacing:2px; margin-bottom:14px; margin-top:20px; display:flex; align-items:center; gap:8px; }
+  /* Segunda página - Transferencia compacta */
+  .transfer-page { page-break-before:always; font-family:Arial,sans-serif; background:#f0f4f0; padding:20px; }
+  .transfer-card { background:#fff; border-radius:16px; overflow:hidden; max-width:480px; margin:0 auto; }
+  .transfer-card-header { background:linear-gradient(135deg,#1a3a2e 0%,#2d5a42 100%); padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+  .transfer-header-left .transfer-tag { font-size:9px; font-weight:700; color:#a3c4a8; text-transform:uppercase; letter-spacing:2px; }
+  .transfer-empresa { font-size:18px; font-weight:900; color:#fff; margin:2px 0; }
+  .transfer-tipo { font-size:11px; color:#a3c4a8; }
+  .transfer-tooth { font-size:28px; }
+  .transfer-body { padding:16px 22px; }
+  .transfer-section-title { font-size:9px; font-weight:700; color:#b8a882; text-transform:uppercase; letter-spacing:2px; margin:12px 0 8px; display:flex; align-items:center; gap:8px; }
   .transfer-section-title::after { content:""; flex:1; height:1px; background:#e8e0d0; }
-  .transfer-row { margin-bottom:14px; }
-  .transfer-row-label { font-size:11px; color:#94a3b8; margin-bottom:3px; font-weight:500; }
-  .transfer-row-value { font-size:15px; font-weight:700; color:#1a2e1e; display:flex; justify-content:space-between; align-items:center; }
-  .copy-btn { background:#f1f5f1; border:1px solid #dde8dd; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:11px; color:#2d5a42; font-weight:600; }
-  .copy-btn:hover { background:#dde8dd; }
-  .cuenta-box { background:#f0f7f2; border:2px solid #2d5a42; border-radius:12px; padding:16px 20px; margin:16px 0; display:flex; justify-content:space-between; align-items:center; }
-  .cuenta-label { font-size:11px; color:#5a8a6a; font-weight:600; margin-bottom:4px; }
-  .cuenta-numero { font-size:26px; font-weight:900; color:#1a3a2e; letter-spacing:1px; }
-  .cuenta-copy-btn { background:#1a3a2e; border:none; border-radius:10px; padding:12px 14px; cursor:pointer; color:#fff; font-size:16px; }
-  .copiar-todo-btn { width:100%; background:linear-gradient(135deg,#1a3a2e,#2d5a42); color:#fff; border:none; border-radius:12px; padding:16px; font-size:14px; font-weight:700; cursor:pointer; margin-top:8px; letter-spacing:0.5px; }
-  .transfer-monto-box { background:linear-gradient(135deg,#1a3a2e,#2d5a42); border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; margin:16px 0; }
-  .transfer-monto-label { font-size:11px; color:rgba(255,255,255,0.7); font-weight:600; text-transform:uppercase; letter-spacing:1px; }
-  .transfer-monto-valor { font-size:22px; font-weight:900; color:#fff; }
-  .transfer-email-footer { text-align:center; padding:16px; border-top:1px solid #f0f0f0; font-size:12px; color:#94a3b8; }
-  .transfer-nota-box { background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:14px 16px; font-size:12px; color:#92400e; line-height:1.6; margin-top:16px; }
+  .transfer-rows { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .transfer-row { background:#f8faf8; border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; }
+  .transfer-row-inner { flex:1; }
+  .transfer-row-label { font-size:9px; color:#94a3b8; font-weight:600; margin-bottom:2px; }
+  .transfer-row-value { font-size:13px; font-weight:700; color:#1a2e1e; }
+  .copy-btn { background:#e8f0e8; border:none; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:10px; color:#2d5a42; font-weight:700; flex-shrink:0; margin-left:6px; }
+  .cuenta-box { background:#f0f7f2; border:2px solid #2d5a42; border-radius:10px; padding:10px 16px; margin:10px 0; display:flex; justify-content:space-between; align-items:center; }
+  .cuenta-label { font-size:9px; color:#5a8a6a; font-weight:700; margin-bottom:2px; }
+  .cuenta-numero { font-size:22px; font-weight:900; color:#1a3a2e; letter-spacing:1px; }
+  .cuenta-copy-btn { background:#1a3a2e; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; color:#fff; font-size:14px; }
+  .transfer-monto-box { background:linear-gradient(135deg,#1a3a2e,#2d5a42); border-radius:10px; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .transfer-monto-label { font-size:9px; color:rgba(255,255,255,0.7); font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+  .transfer-monto-valor { font-size:20px; font-weight:900; color:#fff; }
+  .copiar-todo-btn { width:100%; background:linear-gradient(135deg,#1a3a2e,#2d5a42); color:#fff; border:none; border-radius:10px; padding:11px; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:10px; }
+  .transfer-nota-box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; font-size:10px; color:#92400e; line-height:1.5; }
+  .transfer-email-footer { text-align:center; padding:10px; border-top:1px solid #f0f0f0; font-size:10px; color:#94a3b8; }
 </style>
 </head>
 <body>
@@ -2519,73 +2520,36 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
 <!-- SEGUNDA PÁGINA: DATOS DE TRANSFERENCIA -->
 <div class="transfer-page">
   <div class="transfer-card">
-
-    <!-- Header verde oscuro -->
     <div class="transfer-card-header">
+      <div class="transfer-header-left">
+        <div class="transfer-tag">Datos para transferencia</div>
+        <div class="transfer-empresa">Dental Dentis Spa</div>
+        <div class="transfer-tipo">Laboratorio dental · ${cot.nro || "COT-001"}</div>
+      </div>
       <span class="transfer-tooth">🦷</span>
-      <div class="transfer-tag">Datos para transferencia</div>
-      <div class="transfer-empresa">Dental Dentis Spa</div>
-      <div class="transfer-tipo">Laboratorio dental</div>
     </div>
-
-    <!-- Cuerpo -->
     <div class="transfer-body">
-
-      <!-- Monto -->
       <div class="transfer-monto-box">
-        <div>
-          <div class="transfer-monto-label">Monto a transferir</div>
-          <div class="transfer-monto-valor">${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(total)}</div>
-        </div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.7);text-align:right">${cot.nro || "COT-001"}</div>
+        <div><div class="transfer-monto-label">Monto a transferir</div><div class="transfer-monto-valor">${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(total)}</div></div>
       </div>
-
-      <!-- Datos empresa -->
       <div class="transfer-section-title">Datos de la empresa</div>
-
-      <div class="transfer-row">
-        <div class="transfer-row-label">Razón social</div>
-        <div class="transfer-row-value">Dental Dentis Spa <button class="copy-btn" onclick="copyText('Dental Dentis Spa', this)">📋 copiar</button></div>
+      <div class="transfer-rows">
+        <div class="transfer-row"><div class="transfer-row-inner"><div class="transfer-row-label">Razón social</div><div class="transfer-row-value">Dental Dentis Spa</div></div><button class="copy-btn" onclick="copyText('Dental Dentis Spa',this)">📋</button></div>
+        <div class="transfer-row"><div class="transfer-row-inner"><div class="transfer-row-label">RUT</div><div class="transfer-row-value">78.383.141-4</div></div><button class="copy-btn" onclick="copyText('78.383.141-4',this)">📋</button></div>
+        <div class="transfer-row" style="grid-column:span 2"><div class="transfer-row-inner"><div class="transfer-row-label">Correo</div><div class="transfer-row-value" style="font-size:12px">Laboratoriodental@dentis-lab.com</div></div><button class="copy-btn" onclick="copyText('Laboratoriodental@dentis-lab.com',this)">📋</button></div>
       </div>
-      <div class="transfer-row">
-        <div class="transfer-row-label">RUT</div>
-        <div class="transfer-row-value">78.383.141-4 <button class="copy-btn" onclick="copyText('78.383.141-4', this)">📋 copiar</button></div>
-      </div>
-      <div class="transfer-row">
-        <div class="transfer-row-label">Correo</div>
-        <div class="transfer-row-value" style="font-size:13px">Laboratoriodental@dentis-lab.com <button class="copy-btn" onclick="copyText('Laboratoriodental@dentis-lab.com', this)">📋 copiar</button></div>
-      </div>
-
-      <!-- Datos bancarios -->
       <div class="transfer-section-title">Datos bancarios</div>
-
-      <div class="transfer-row">
-        <div class="transfer-row-label">Banco</div>
-        <div class="transfer-row-value">Scotiabank <button class="copy-btn" onclick="copyText('Scotiabank', this)">📋 copiar</button></div>
+      <div class="transfer-rows">
+        <div class="transfer-row"><div class="transfer-row-inner"><div class="transfer-row-label">Banco</div><div class="transfer-row-value">Scotiabank</div></div><button class="copy-btn" onclick="copyText('Scotiabank',this)">📋</button></div>
+        <div class="transfer-row"><div class="transfer-row-inner"><div class="transfer-row-label">Tipo de cuenta</div><div class="transfer-row-value">Cuenta Corriente</div></div><button class="copy-btn" onclick="copyText('Cuenta Corriente',this)">📋</button></div>
       </div>
-      <div class="transfer-row">
-        <div class="transfer-row-label">Tipo de cuenta</div>
-        <div class="transfer-row-value">Cuenta Corriente <button class="copy-btn" onclick="copyText('Cuenta Corriente', this)">📋 copiar</button></div>
-      </div>
-
-      <!-- Número cuenta destacado -->
       <div class="cuenta-box">
-        <div>
-          <div class="cuenta-label">N° de cuenta</div>
-          <div class="cuenta-numero">993705659</div>
-        </div>
-        <button class="cuenta-copy-btn" onclick="copyText('993705659', this)">📋</button>
+        <div><div class="cuenta-label">N° de cuenta</div><div class="cuenta-numero">993705659</div></div>
+        <button class="cuenta-copy-btn" onclick="copyText('993705659',this)">📋</button>
       </div>
-
-      <!-- Botón copiar todo -->
       <button class="copiar-todo-btn" onclick="copyAll()">📋 Copiar todos los datos</button>
-
-      <!-- Nota -->
-      <div class="transfer-nota-box">
-        📌 Una vez realizada la transferencia, envía el comprobante al correo o al WhatsApp <strong>+569 91315887</strong> indicando tu nombre y el N° de cotización <strong>${cot.nro || "COT-001"}</strong>.
-      </div>
+      <div class="transfer-nota-box">📌 Envía el comprobante al correo o WhatsApp <strong>+569 91315887</strong> indicando N° de cotización <strong>${cot.nro || "COT-001"}</strong>.</div>
     </div>
-
     <div class="transfer-email-footer">Laboratoriodental@dentis-lab.com</div>
   </div>
 </div>
