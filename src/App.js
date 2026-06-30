@@ -491,6 +491,8 @@ export default function App() {
   const [editandoCot, setEditandoCot] = useState(null);
   const [formCot, setFormCot] = useState({ clinica:"", doctor:"", fecha:"", validez:"30", observaciones:"", items:[] });
   const [busqCotItem, setBusqCotItem] = useState("");
+  const [itemPersonalizado, setItemPersonalizado] = useState({ nombre:"", precio:"", area:"Otro" });
+  const [showItemPersonalizado, setShowItemPersonalizado] = useState(false);
   const [fichaClinicaId, setFichaClinicaId] = useState(null);
   const [busquedaGlobal, setBusquedaGlobal] = useState("");
 
@@ -689,6 +691,8 @@ export default function App() {
     guardarDatos(datos);
     setShowFormCot(false); setEditandoCot(null);
     setFormCot({ clinica:"", doctor:"", fecha:"", validez:"30", observaciones:"", items:[], tipo_precio:"normal" });
+    setShowItemPersonalizado(false);
+    setItemPersonalizado({ nombre:"", precio:"", area:"Otro" });
   };
   const delCot = (id) => {
     if (!window.confirm("¿Eliminar cotización?")) return;
@@ -2636,6 +2640,42 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                         {ARANCEL_COT.filter(a=>a.nombre.toLowerCase().includes(busqCotItem.toLowerCase())).length===0 && (
                           <p style={{ padding:"12px", color:"#64748b", fontSize:"13px" }}>Sin resultados</p>
                         )}
+                      </div>
+                    )}
+
+                    {/* Botón para agregar item personalizado */}
+                    <button onClick={()=>setShowItemPersonalizado(!showItemPersonalizado)} style={{ width:"100%", background: showItemPersonalizado?"#e0f2fe":"#f8fcff", border:"1px dashed #7dd3fc", color:"#0369a1", padding:"8px", borderRadius:"6px", fontSize:"12px", cursor:"pointer", fontFamily:"monospace", marginBottom:"12px", fontWeight:600 }}>
+                      {showItemPersonalizado ? "✕ Cancelar trabajo personalizado" : "✏️ + Agregar trabajo personalizado (no está en el arancel)"}
+                    </button>
+
+                    {showItemPersonalizado && (
+                      <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:"8px", padding:"14px", marginBottom:"12px" }}>
+                        <div style={{ marginBottom:"10px" }}>
+                          <label className="lbl">Nombre del trabajo</label>
+                          <input className="inp" placeholder="Ej: Reparación de urgencia, ajuste especial..." value={itemPersonalizado.nombre} onChange={e=>setItemPersonalizado(p=>({...p, nombre:e.target.value}))}/>
+                        </div>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"10px" }}>
+                          <div>
+                            <label className="lbl">Precio ($)</label>
+                            <input type="number" className="inp" placeholder="Ej: 25000" value={itemPersonalizado.precio} onChange={e=>setItemPersonalizado(p=>({...p, precio:e.target.value}))}/>
+                          </div>
+                          <div>
+                            <label className="lbl">Área</label>
+                            <select className="inp" value={itemPersonalizado.area} onChange={e=>setItemPersonalizado(p=>({...p, area:e.target.value}))}>
+                              {AREAS.map(a=><option key={a}>{a}</option>)}
+                              <option>Otro</option>
+                            </select>
+                          </div>
+                        </div>
+                        <button onClick={()=>{
+                          if (!itemPersonalizado.nombre.trim() || !itemPersonalizado.precio) return;
+                          setFormCot(f=>({...f, items:[...f.items, { nombre:itemPersonalizado.nombre, precio:Number(itemPersonalizado.precio), area:itemPersonalizado.area, cantidad:1, personalizado:true }]}));
+                          setItemPersonalizado({ nombre:"", precio:"", area:"Otro" });
+                          setShowItemPersonalizado(false);
+                        }} disabled={!itemPersonalizado.nombre.trim()||!itemPersonalizado.precio}
+                          style={{ width:"100%", background:"#0ea5e9", color:"#fff", padding:"9px", borderRadius:"6px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace", opacity:(!itemPersonalizado.nombre.trim()||!itemPersonalizado.precio)?0.5:1 }}>
+                          + Agregar a la cotización
+                        </button>
                       </div>
                     )}
 
