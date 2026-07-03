@@ -108,16 +108,16 @@ function restaurarDesdeBackup() {
 
 // ── DATOS INICIALES ──────────────────────────────────────────────
 const CLINICAS_INICIALES = [
-  { id: 1, nombre: "MAODENTAL", localidad: "Villarrica", doctor: "Maria Jose Muñoz Ortega", telefono: "569 7979 4140", direccion: "Pedro Montt N° 774", email: "", estado: "CLIENTE", convenio: true },
-  { id: 2, nombre: "LOS NOTROS", localidad: "Villarrica", doctor: "Sebastian Robles", telefono: "569 51230389", direccion: "Saturnino Epulef N° 899", email: "", estado: "CLIENTE" },
-  { id: 3, nombre: "VIDADENTAL", localidad: "Villarrica", doctor: "Mariajose Olivares", telefono: "569 45889855", direccion: "Segunda Faja N° 805, Local 1", email: "", estado: "CLIENTE" },
-  { id: 4, nombre: "CABRAPAN DENTAL", localidad: "Villarrica", doctor: "Yerti Cabrapan G", telefono: "569 96433456", direccion: "Edificio Pehuen", email: "", estado: "CLIENTE" },
-  { id: 5, nombre: "CLINICA SAN CLEMENTE", localidad: "Panguipulli", doctor: "Diego Fuentes", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
-  { id: 6, nombre: "CLINICA ARAUCARIA", localidad: "Villarrica", doctor: "Cristobal Pereira", telefono: "", direccion: "", email: "", estado: "PROSPECTO" },
-  { id: 7, nombre: "CLINICA KUTRALKO", localidad: "Villarrica", doctor: "Alarcon", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
-  { id: 8, nombre: "CLINICA DENTALIZ", localidad: "Villarrica", doctor: "Licet Salazar", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
-  { id: 9, nombre: "CLINICA ZX PUCON", localidad: "Pucón", doctor: "", telefono: "", direccion: "", email: "", estado: "CLIENTE" },
-  { id: 10, nombre: "CLINICA LOS PIRINEOS", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "CLIENTE", convenio: true },
+  { id: 1, nombre: "MAODENTAL", localidad: "Villarrica", doctores: ["Maria Jose Muñoz Ortega"], telefono: "569 7979 4140", direccion: "Pedro Montt N° 774", email: "", estado: "CLIENTE", convenio: true },
+  { id: 2, nombre: "LOS NOTROS", localidad: "Villarrica", doctores: ["Sebastian Robles"], telefono: "569 51230389", direccion: "Saturnino Epulef N° 899", email: "", estado: "CLIENTE" },
+  { id: 3, nombre: "VIDADENTAL", localidad: "Villarrica", doctores: ["Mariajose Olivares"], telefono: "569 45889855", direccion: "Segunda Faja N° 805, Local 1", email: "", estado: "CLIENTE" },
+  { id: 4, nombre: "CABRAPAN DENTAL", localidad: "Villarrica", doctores: ["Yerti Cabrapan G"], telefono: "569 96433456", direccion: "Edificio Pehuen", email: "", estado: "CLIENTE" },
+  { id: 5, nombre: "CLINICA SAN CLEMENTE", localidad: "Panguipulli", doctores: ["Diego Fuentes"], telefono: "", direccion: "", email: "", estado: "CLIENTE" },
+  { id: 6, nombre: "CLINICA ARAUCARIA", localidad: "Villarrica", doctores: ["Cristobal Pereira"], telefono: "", direccion: "", email: "", estado: "PROSPECTO" },
+  { id: 7, nombre: "CLINICA KUTRALKO", localidad: "Villarrica", doctores: ["Alarcon"], telefono: "", direccion: "", email: "", estado: "CLIENTE" },
+  { id: 8, nombre: "CLINICA DENTALIZ", localidad: "Villarrica", doctores: ["Licet Salazar"], telefono: "", direccion: "", email: "", estado: "CLIENTE" },
+  { id: 9, nombre: "CLINICA ZX PUCON", localidad: "Pucón", doctores: [], telefono: "", direccion: "", email: "", estado: "CLIENTE" },
+  { id: 10, nombre: "CLINICA LOS PIRINEOS", localidad: "Villarrica", doctores: [], telefono: "", direccion: "", email: "", estado: "CLIENTE", convenio: true },
 ];
 
 const TRABAJOS_INICIALES = [
@@ -187,6 +187,7 @@ const MESES = [
   { value: "2026-11", label: "Noviembre 2026" }, { value: "2026-12", label: "Diciembre 2026" },
 ];
 const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
+const LOCALIDADES = ["Villarrica", "Pucón", "Pitrufquén", "Temuco", "Licanray", "Panguipulli", "Otra"];
 const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "ENTREGADO", "PENDIENTE"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
@@ -581,7 +582,8 @@ export default function App() {
   const [capitalInput, setCapitalInput] = useState("1000000");
 
   const [showFormT, setShowFormT] = useState(false); const [editandoT, setEditandoT] = useState(null); const [formT, setFormT] = useState(emptyT);
-  const [showFormC, setShowFormC] = useState(false); const [editandoC, setEditandoC] = useState(null); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+  const [showFormC, setShowFormC] = useState(false); const [editandoC, setEditandoC] = useState(null); const [formC, setFormC] = useState({ nombre: "", localidad: "Villarrica", doctores: [], telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+  const [nuevoDoctor, setNuevoDoctor] = useState("");
   const [showFormG, setShowFormG] = useState(false); const [editandoG, setEditandoG] = useState(null); const [formG, setFormG] = useState(emptyG);
   const [showFormI, setShowFormI] = useState(false); const [editandoI, setEditandoI] = useState(null); const [formI, setFormI] = useState(emptyI);
 
@@ -701,9 +703,16 @@ export default function App() {
       ? clinicas.map(x => x.id === editandoC ? { ...formC, id: editandoC } : x)
       : [...clinicas, { ...formC, id: Math.max(0, ...clinicas.map(x => x.id)) + 1 }];
     setClinicas(next); guardarTodo(trabajos, next, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
-    setShowFormC(false); setEditandoC(null); setFormC({ nombre: "", localidad: "Villarrica", doctor: "", telefono: "", direccion: "", email: "", estado: "PROSPECTO" });
+    setShowFormC(false); setEditandoC(null); setFormC({ nombre: "", localidad: "Villarrica", doctores: [], telefono: "", direccion: "", email: "", estado: "PROSPECTO" }); setNuevoDoctor("");
   };
-  const editC = (c) => { setFormC({ ...c }); setEditandoC(c.id); setShowFormC(true); };
+  const editC = (c) => {
+    // Migrar campo doctor (string) a doctores (array) si es necesario
+    const doctoresArr = c.doctores ? c.doctores : (c.doctor ? [c.doctor] : []);
+    setFormC({ ...c, doctores: doctoresArr });
+    setEditandoC(c.id);
+    setShowFormC(true);
+    setNuevoDoctor("");
+  };
 
   const saveG = () => {
     const vt = formG.valor_total || (Number(formG.cantidad) * Number(formG.valor_unit));
@@ -1192,15 +1201,39 @@ export default function App() {
                     <label className="lbl">Clínica</label>
                     <input className="inp" list="lista-clinicas" value={formT.clinica} onChange={e=>{
                       const clin = clinicas.find(c=>c.nombre===e.target.value);
-                      setFormT(f=>({...f, clinica:e.target.value, doctor: clin?.doctor || f.doctor}));
+                      const primerDoc = clin?.doctores?.[0] || clin?.doctor || "";
+                      setFormT(f=>({...f, clinica:e.target.value, doctor: primerDoc}));
                     }} placeholder="Selecciona o escribe..."/>
                     <datalist id="lista-clinicas">
                       {clinicas.map(c=><option key={c.id} value={c.nombre}/>)}
                     </datalist>
                   </div>
-                  {[["Doctor/a","doctor"],["Paciente","paciente"],["Tipo de trabajo","tipo"],["Localidad","localidad"]].map(([lb,k])=>(
+                  {[["Paciente","paciente"],["Tipo de trabajo","tipo"]].map(([lb,k])=>(
                     <div key={k} style={{ marginBottom:"12px" }}><label className="lbl">{lb}</label><input className="inp" value={formT[k]} onChange={e=>setFormT(f=>({...f,[k]:e.target.value}))}/></div>
                   ))}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                    <div>
+                      <label className="lbl">Doctor/a</label>
+                      {(() => {
+                        const clinSel = clinicas.find(c=>c.nombre===formT.clinica);
+                        const docs = clinSel?.doctores || (clinSel?.doctor ? [clinSel.doctor] : []);
+                        return docs.length > 0 ? (
+                          <select className="inp" value={formT.doctor} onChange={e=>setFormT(f=>({...f,doctor:e.target.value}))}>
+                            <option value="">Seleccionar doctor...</option>
+                            {docs.map(d=><option key={d} value={d}>{d}</option>)}
+                          </select>
+                        ) : (
+                          <input className="inp" value={formT.doctor} onChange={e=>setFormT(f=>({...f,doctor:e.target.value}))} placeholder="Nombre del doctor/a"/>
+                        );
+                      })()}
+                    </div>
+                    <div>
+                      <label className="lbl">Localidad</label>
+                      <select className="inp" value={formT.localidad} onChange={e=>setFormT(f=>({...f,localidad:e.target.value}))}>
+                        {LOCALIDADES.map(l=><option key={l}>{l}</option>)}
+                      </select>
+                    </div>
+                  </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
                     <div><label className="lbl">Valor ($)</label><input type="number" className="inp" value={formT.valor} onChange={e=>setFormT(f=>({...f,valor:e.target.value}))}/></div>
                     <div><label className="lbl">N° Factura</label><input className="inp" value={formT.nro_factura} onChange={e=>setFormT(f=>({...f,nro_factura:e.target.value}))}/></div>
@@ -1526,7 +1559,7 @@ export default function App() {
                           <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
                           {esConvClinica && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
                         </div>
-                        <p style={{ fontSize:"12px", color:"#64748b" }}>{c.localidad} · {c.doctor}</p>
+                        <p style={{ fontSize:"12px", color:"#64748b" }}>{c.localidad} · {(c.doctores||[c.doctor]).filter(Boolean).join(", ") || "Sin doctores"}</p>
                         {c.telefono && <p style={{ fontSize:"12px", color:"#64748b" }}>📞 {c.telefono}</p>}
                         {c.direccion && <p style={{ fontSize:"11px", color:"#bae6fd" }}>{c.direccion}</p>}
                       </div>
@@ -1604,9 +1637,36 @@ export default function App() {
               <div className="overlay">
                 <div className="modal">
                   <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340", marginBottom:"16px" }}>{editandoC?"Editar Clínica":"Nueva Clínica"}</p>
-                  {[["Nombre","nombre"],["Localidad","localidad"],["Doctor/a","doctor"],["Teléfono","telefono"],["Dirección","direccion"],["Email","email"]].map(([lb,k])=>(
+                  {[["Nombre","nombre"],["Teléfono","telefono"],["Dirección","direccion"],["Email","email"]].map(([lb,k])=>(
                     <div key={k} style={{ marginBottom:"12px" }}><label className="lbl">{lb}</label><input className="inp" value={formC[k]} onChange={e=>setFormC(f=>({...f,[k]:e.target.value}))}/></div>
                   ))}
+
+                  <div style={{ marginBottom:"12px" }}>
+                    <label className="lbl">Localidad</label>
+                    <select className="inp" value={formC.localidad} onChange={e=>setFormC(f=>({...f,localidad:e.target.value}))}>
+                      {LOCALIDADES.map(l=><option key={l}>{l}</option>)}
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom:"12px" }}>
+                    <label className="lbl">Doctores</label>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:"6px", marginBottom:"8px" }}>
+                      {(formC.doctores||[]).map((d,i)=>(
+                        <div key={i} style={{ display:"flex", alignItems:"center", gap:"4px", background:"#e0f2fe", border:"1px solid #7dd3fc", borderRadius:"20px", padding:"3px 10px" }}>
+                          <span style={{ fontSize:"12px", color:"#0369a1", fontWeight:600 }}>{d}</span>
+                          <button onClick={()=>setFormC(f=>({...f,doctores:f.doctores.filter((_,j)=>j!==i)}))} style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:"14px", lineHeight:1, padding:0 }}>×</button>
+                        </div>
+                      ))}
+                      {(formC.doctores||[]).length===0 && <p style={{ fontSize:"12px", color:"#94a3b8" }}>Sin doctores agregados</p>}
+                    </div>
+                    <div style={{ display:"flex", gap:"8px" }}>
+                      <input className="inp" placeholder="Nombre del doctor/a..." value={nuevoDoctor} onChange={e=>setNuevoDoctor(e.target.value)}
+                        onKeyDown={e=>{ if(e.key==="Enter"&&nuevoDoctor.trim()){ setFormC(f=>({...f,doctores:[...(f.doctores||[]),nuevoDoctor.trim()]})); setNuevoDoctor(""); }}}/>
+                      <button onClick={()=>{ if(nuevoDoctor.trim()){ setFormC(f=>({...f,doctores:[...(f.doctores||[]),nuevoDoctor.trim()]})); setNuevoDoctor(""); }}}
+                        style={{ background:"#0ea5e9", color:"#fff", border:"none", borderRadius:"6px", padding:"8px 14px", cursor:"pointer", fontWeight:700, fontSize:"13px", whiteSpace:"nowrap" }}>+ Agregar</button>
+                    </div>
+                  </div>
+
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Estado</label><select className="inp" value={formC.estado} onChange={e=>setFormC(f=>({...f,estado:e.target.value}))}><option>PROSPECTO</option><option>CLIENTE</option><option>INACTIVO</option></select></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
                     <button className="btng" onClick={()=>{setShowFormC(false);setEditandoC(null);}}>Cancelar</button>
