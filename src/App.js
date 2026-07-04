@@ -188,7 +188,8 @@ const MESES = [
 ];
 const AREAS = ["Ortodoncia", "Removible", "Fija", "Plano", "Implante", "Otro"];
 const LOCALIDADES = ["Villarrica", "Pucón", "Pitrufquén", "Temuco", "Licanray", "Panguipulli", "Otra"];
-const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "EN PROCESO", "FACTURAR", "ENTREGADO", "PENDIENTE"];
+const ESTADOS_PAGO = ["PAGADO", "FACTURADO", "NO FACTURADO", "FACTURAR", "PENDIENTE"];
+const ESTADOS_TRABAJO = ["EN PROCESO", "LISTO", "ENTREGADO"];
 const CATS_GASTO = ["Insumos", "Servicios", "Arriendo", "Transporte", "Maquinaria", "Otro"];
 const CATS_INV = ["Ortodoncia", "Acrílicos", "Removible", "Impresión 3D", "Maquinaria", "General"];
 const CLINICAS_CONVENIO = ["MAODENTAL", "CLINICA LOS PIRINEOS"]; // clínicas con convenio
@@ -212,8 +213,13 @@ const PILL_CLASS = {
   "ENTREGADO": "pill-entregado",
   "PENDIENTE": "pill-pend",
 };
+const PILL_CLASS_TRABAJO = {
+  "EN PROCESO": "pill-enproceso",
+  "LISTO": "pill-listo",
+  "ENTREGADO": "pill-entregado-t",
+};
 
-const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "", nro_ot: "" };
+const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "PENDIENTE", estado_trabajo: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "", nro_ot: "" };
 const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "", fecha: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
 
@@ -680,10 +686,13 @@ export default function App() {
   const toggleEntregaT = (id) => {
     const next = trabajos.map(t => {
       if (t.id !== id) return t;
-      const nuevoEntregado = !t.entregado;
-      const nuevoEstado = nuevoEntregado && t.estado_pago === "EN PROCESO" ? "FACTURAR" : t.estado_pago;
-      const estadoFinal = !nuevoEntregado && t.estado_pago === "FACTURAR" ? "EN PROCESO" : nuevoEstado;
-      return { ...t, entregado: nuevoEntregado, estado_pago: estadoFinal };
+      const estadoActual = t.estado_trabajo || "EN PROCESO";
+      // Rotar: EN PROCESO → LISTO → ENTREGADO → EN PROCESO
+      const estados = ["EN PROCESO", "LISTO", "ENTREGADO"];
+      const idx = estados.indexOf(estadoActual);
+      const nuevoEstadoTrabajo = estados[(idx + 1) % estados.length];
+      const entregado = nuevoEstadoTrabajo === "ENTREGADO";
+      return { ...t, estado_trabajo: nuevoEstadoTrabajo, entregado };
     });
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
   };
@@ -956,6 +965,9 @@ export default function App() {
         .pill-convenio { background: #fef3c7; color: #92400e; border-color: #fcd34d; font-weight: 700; }
         .card-convenio { background: #fffbeb; border: 2px solid #f59e0b; border-radius: 10px; box-shadow: 0 2px 12px rgba(245,158,11,0.15); }
         .pill-facturar { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; font-weight: 700; }
+        .pill-listo { background: #d1fae5; color: #065f46; border-color: #6ee7b7; font-weight: 700; }
+        .pill-entregado-t { background: #dcfce7; color: #15803d; border-color: #86efac; font-weight: 700; }
+        .pill-enproceso { background: #fef9c3; color: #854d0e; border-color: #fde047; font-weight: 700; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .overlay { position: fixed; inset: 0; background: rgba(12,35,64,0.6); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; backdrop-filter: blur(4px); }
         .modal { background: #ffffff; border: 1px solid #bae6fd; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 8px 32px rgba(14,165,233,0.15); }
@@ -1159,8 +1171,8 @@ export default function App() {
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"6px" }}>
                       <span style={{ fontSize:"11px", background:"#f8fcff", color:"#64748b", padding:"2px 8px", borderRadius:"4px" }}>{t.area}</span>
-                      <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>{t.estado_pago}</span>
-                      {t.entregado && <span className="pill pill-entregado">✅ Entregado</span>}
+                      <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>💳 {t.estado_pago}</span>
+                      <span className={`pill ${PILL_CLASS_TRABAJO[t.estado_trabajo||"EN PROCESO"]||"pill-enproceso"}`}>🔧 {t.estado_trabajo||"EN PROCESO"}</span>
                       {t.nro_factura && <span style={{ fontSize:"11px", color:"#64748b" }}>Fact.#{t.nro_factura}</span>}
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"3px" }}>
@@ -1178,8 +1190,10 @@ export default function App() {
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
                     <p style={{ color:"#0ea5e9", fontWeight:700, fontSize:"16px" }}>{fmt(t.valor)}</p>
                     <div style={{ display:"flex", gap:"4px", flexWrap:"wrap", justifyContent:"flex-end" }}>
-                      <button onClick={()=>toggleEntregaT(t.id)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background:t.entregado?"#7c2d12":"#14532d", color:t.entregado?"#fb923c":"#4ade80" }}>
-                        {t.entregado?"↩ Pendiente":"✅ Entregar"}
+                      <button onClick={()=>toggleEntregaT(t.id)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700,
+                        background:(t.estado_trabajo||"EN PROCESO")==="ENTREGADO"?"#14532d":(t.estado_trabajo==="LISTO"?"#065f46":"#0369a1"),
+                        color:"#ffffff" }}>
+                        {(t.estado_trabajo||"EN PROCESO")==="EN PROCESO"?"🔧 Marcar Listo":(t.estado_trabajo==="LISTO"?"✅ Marcar Entregado":"↩ Reabrir")}
                       </button>
                       <button className="bsm" onClick={()=>editT(t)}>✏️</button>
                       <button className="bsm" style={{ color:"#f87171" }} onClick={()=>delT(t.id)}>🗑</button>
@@ -1243,7 +1257,10 @@ export default function App() {
                     <div><label className="lbl">Fecha Entrega</label><input type="date" className="inp" value={formT.fecha_entrega} onChange={e=>setFormT(f=>({...f,fecha_entrega:e.target.value}))}/></div>
                   </div>
                   {editandoT && formT.nro_ot && <div style={{ marginBottom:"12px" }}><label className="lbl">N° OT</label><input className="inp" value={formT.nro_ot} readOnly style={{ opacity:0.5, cursor:"not-allowed" }}/></div>}
-                  <div style={{ marginBottom:"12px" }}><label className="lbl">Estado de pago</label><select className="inp" value={formT.estado_pago} onChange={e=>setFormT(f=>({...f,estado_pago:e.target.value}))}>{ESTADOS_PAGO.map(e=><option key={e}>{e}</option>)}</select></div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
+                    <div><label className="lbl">Estado de pago 💳</label><select className="inp" value={formT.estado_pago} onChange={e=>setFormT(f=>({...f,estado_pago:e.target.value}))}>{ESTADOS_PAGO.map(e=><option key={e}>{e}</option>)}</select></div>
+                    <div><label className="lbl">Estado del trabajo 🔧</label><select className="inp" value={formT.estado_trabajo||"EN PROCESO"} onChange={e=>setFormT(f=>({...f,estado_trabajo:e.target.value}))}>{ESTADOS_TRABAJO.map(e=><option key={e}>{e}</option>)}</select></div>
+                  </div>
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Observaciones</label><textarea className="inp" rows={2} value={formT.observaciones} onChange={e=>setFormT(f=>({...f,observaciones:e.target.value}))}/></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
                     <button className="btng" onClick={()=>{setShowFormT(false);setEditandoT(null);}}>Cancelar</button>
