@@ -13,19 +13,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzE1qNE6vOJK7IEYzqSLJa_
 const LS_KEY = "lab_dental_datos";
 
 async function cargarDatos() {
-  // SIEMPRE usar localStorage si existe - es la fuente de verdad
-  try {
-    const local = localStorage.getItem(LS_KEY);
-    if (local) {
-      const parsed = JSON.parse(local);
-      if (parsed && parsed.trabajos) {
-        console.log("Cargando desde localStorage:", parsed.trabajos.length, "trabajos");
-        return parsed;
-      }
-    }
-  } catch(e) { console.error("Error leyendo localStorage:", e); }
-
-  // Solo cargar desde Sheets si localStorage está completamente vacío
+  // Intentar Sheets primero para tener siempre lo más actualizado
   try {
     const r = await fetch(API_URL);
     const json = await r.json();
@@ -34,11 +22,38 @@ async function cargarDatos() {
       const idx = raw.indexOf("{");
       if (idx > 0) raw = raw.substring(idx);
       const datos = JSON.parse(raw);
+      // Comparar con localStorage - usar el que tenga más datos
+      try {
+        const local = localStorage.getItem(LS_KEY);
+        if (local) {
+          const localDatos = JSON.parse(local);
+          const localCount = localDatos.trabajos?.length || 0;
+          const sheetsCount = datos.trabajos?.length || 0;
+          if (localCount > sheetsCount) {
+            console.log("localStorage más actualizado:", localCount, "vs Sheets:", sheetsCount);
+            // Sincronizar localStorage a Sheets
+            sincronizarConSheets(localDatos);
+            return localDatos;
+          }
+        }
+      } catch(e) {}
       localStorage.setItem(LS_KEY, JSON.stringify(datos));
       console.log("Cargado desde Sheets:", datos.trabajos?.length, "trabajos");
       return datos;
     }
   } catch (e) { console.error("Error cargando desde Sheets:", e); }
+
+  // Fallback: localStorage
+  try {
+    const local = localStorage.getItem(LS_KEY);
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (parsed && parsed.trabajos) {
+        console.log("Fallback localStorage:", parsed.trabajos.length, "trabajos");
+        return parsed;
+      }
+    }
+  } catch(e) {}
   
   return null;
 }
@@ -56,12 +71,16 @@ async function guardarDatos(datos) {
 
 async function sincronizarConSheets(datos) {
   try {
-    const encoded = encodeURIComponent(JSON.stringify(datos));
-    await fetch(API_URL + "?action=save&data=" + encoded);
+    // POST con no-cors - llega al servidor aunque no podamos leer la respuesta
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(datos),
+    });
     console.log("Sincronizado con Sheets OK");
   } catch(e) {
-    // No importa si falla - localStorage ya tiene los datos
-    console.log("Sheets no disponible, datos en localStorage");
+    console.log("Sheets no disponible:", e);
   }
 }
 
