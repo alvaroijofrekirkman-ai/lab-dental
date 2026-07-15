@@ -11,53 +11,27 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwpqj8uKABeZ7Dw3I0zu4GO
 
 // ── API HELPERS ──────────────────────────────────────────────────
 async function cargarDatos() {
-  return new Promise((resolve) => {
-    try {
-      const cbName = "labcb_" + Date.now();
-      const script = document.createElement("script");
-      const timeout = setTimeout(() => {
-        delete window[cbName];
-        document.body.removeChild(script);
-        resolve(null);
-      }, 10000);
-      window[cbName] = (data) => {
-        clearTimeout(timeout);
-        delete window[cbName];
-        document.body.removeChild(script);
-        try {
-          if (data.ok && data.data && data.data !== "{}") {
-            let raw = data.data;
-            const idx = raw.indexOf("{");
-            if (idx > 0) raw = raw.substring(idx);
-            resolve(JSON.parse(raw));
-          } else {
-            resolve(null);
-          }
-        } catch(e) { resolve(null); }
-      };
-      script.src = API_URL + "?callback=" + cbName + "&t=" + Date.now();
-      script.onerror = () => { clearTimeout(timeout); resolve(null); };
-      document.body.appendChild(script);
-    } catch(e) { resolve(null); }
-  });
+  try {
+    const r = await fetch(API_URL);
+    const json = await r.json();
+    if (json.ok && json.data && json.data !== "{}") {
+      let raw = json.data;
+      const idx = raw.indexOf("{");
+      if (idx > 0) raw = raw.substring(idx);
+      return JSON.parse(raw);
+    }
+  } catch (e) { console.error("Error cargando:", e); }
+  return null;
 }
 
 async function guardarDatos(datos) {
   try {
-    // Intentar POST normal primero
     await fetch(API_URL, {
       method: "POST",
-      mode: "no-cors",
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(datos),
     });
-  } catch (e) {
-    try {
-      // Fallback: GET con data como parámetro
-      const encoded = encodeURIComponent(JSON.stringify(datos));
-      await fetch(API_URL + "?data=" + encoded, { mode: "no-cors" });
-    } catch(e2) { console.error("Error guardando:", e2); }
-  }
+  } catch (e) { console.error("Error guardando:", e); }
 }
 
 // ── DATOS INICIALES ──────────────────────────────────────────────
