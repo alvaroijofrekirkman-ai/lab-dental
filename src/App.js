@@ -59,25 +59,25 @@ async function cargarDatos() {
 }
 
 async function guardarDatos(datos) {
-  // 1. Guardar en localStorage INMEDIATAMENTE (nunca falla)
+  // 1. Guardar en localStorage INMEDIATAMENTE
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(datos));
-    console.log("Guardado en localStorage:", datos.trabajos?.length, "trabajos");
-  } catch(e) { console.error("Error guardando en localStorage:", e); }
+  } catch(e) { console.error("Error localStorage:", e); }
   
-  // 2. Intentar sincronizar con Sheets en background (no bloquea)
-  sincronizarConSheets(datos);
+  // 2. Guardar en Sheets via GET (funciona sin CORS)
+  try {
+    const encoded = encodeURIComponent(JSON.stringify(datos));
+    await fetch(API_URL + "?action=save&data=" + encoded);
+    console.log("Guardado en Sheets OK");
+  } catch(e) {
+    console.log("Sheets no disponible:", e);
+  }
 }
 
 async function sincronizarConSheets(datos) {
   try {
-    // POST con no-cors - llega al servidor aunque no podamos leer la respuesta
-    await fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(datos),
-    });
+    const encoded = encodeURIComponent(JSON.stringify(datos));
+    await fetch(API_URL + "?action=save&data=" + encoded);
     console.log("Sincronizado con Sheets OK");
   } catch(e) {
     console.log("Sheets no disponible:", e);
