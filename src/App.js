@@ -7,7 +7,7 @@ const USUARIOS = [
 ];
 
 // ── URL DEL BACKEND (Google Apps Script) ─────────────────────────
-const API_URL = "https://script.google.com/macros/s/AKfycbxXaAFB7Vci4yutVQ5SntQNrxEo1WCz8g1zYZC6Bwfd0dmhyId_af7aC_7wsF9YCa_o/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyLitqiv96Nn9sqTUbRiN4PRnJZnD58ObDtkxYPhJpuj07eUYODlleZ7aJHfTEO57qE/exec";
 
 // ── API HELPERS ──────────────────────────────────────────────────
 async function cargarDatos() {
