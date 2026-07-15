@@ -10,78 +10,39 @@ const USUARIOS = [
 const API_URL = "https://script.google.com/macros/s/AKfycbzE1qNE6vOJK7IEYzqSLJa_7Vcwr7C-LtU5s6hgH30tW8wIPzgvgSj89o6GpaJlmTCp/exec";
 
 // ── API HELPERS ──────────────────────────────────────────────────
-const LS_KEY = "lab_dental_datos";
+// ── SUPABASE CONFIG ─────────────────────────────────────────────
+const SUPA_URL = "https://amaqpjawhtgswlrcudsw.supabase.co";
+const SUPA_KEY = "sb_publishable_-9fHvaqv8EFQEuaRjNN6nw_Kwi2grM-";
+const SUPA_HEADERS = {
+  "apikey": SUPA_KEY,
+  "Authorization": "Bearer " + SUPA_KEY,
+  "Content-Type": "application/json",
+  "Prefer": "return=minimal"
+};
 
 async function cargarDatos() {
-  // Intentar Sheets primero para tener siempre lo más actualizado
   try {
-    const r = await fetch(API_URL);
+    const r = await fetch(SUPA_URL + "/rest/v1/lab_datos?id=eq.principal&select=datos", {
+      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY }
+    });
     const json = await r.json();
-    if (json.ok && json.data && json.data !== "{}") {
-      let raw = json.data;
-      const idx = raw.indexOf("{");
-      if (idx > 0) raw = raw.substring(idx);
-      const datos = JSON.parse(raw);
-      // Comparar con localStorage - usar el que tenga más datos
-      try {
-        const local = localStorage.getItem(LS_KEY);
-        if (local) {
-          const localDatos = JSON.parse(local);
-          const localCount = localDatos.trabajos?.length || 0;
-          const sheetsCount = datos.trabajos?.length || 0;
-          if (localCount > sheetsCount) {
-            console.log("localStorage más actualizado:", localCount, "vs Sheets:", sheetsCount);
-            // Sincronizar localStorage a Sheets
-            sincronizarConSheets(localDatos);
-            return localDatos;
-          }
-        }
-      } catch(e) {}
-      localStorage.setItem(LS_KEY, JSON.stringify(datos));
-      console.log("Cargado desde Sheets:", datos.trabajos?.length, "trabajos");
-      return datos;
+    if (json && json[0] && json[0].datos) {
+      console.log("Cargado desde Supabase:", json[0].datos.trabajos?.length, "trabajos");
+      return json[0].datos;
     }
-  } catch (e) { console.error("Error cargando desde Sheets:", e); }
-
-  // Fallback: localStorage
-  try {
-    const local = localStorage.getItem(LS_KEY);
-    if (local) {
-      const parsed = JSON.parse(local);
-      if (parsed && parsed.trabajos) {
-        console.log("Fallback localStorage:", parsed.trabajos.length, "trabajos");
-        return parsed;
-      }
-    }
-  } catch(e) {}
-  
+  } catch(e) { console.error("Error cargando desde Supabase:", e); }
   return null;
 }
 
 async function guardarDatos(datos) {
-  // 1. Guardar en localStorage INMEDIATAMENTE
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(datos));
-  } catch(e) { console.error("Error localStorage:", e); }
-  
-  // 2. Guardar en Sheets via GET (funciona sin CORS)
-  try {
-    const encoded = encodeURIComponent(JSON.stringify(datos));
-    await fetch(API_URL + "?action=save&data=" + encoded);
-    console.log("Guardado en Sheets OK");
-  } catch(e) {
-    console.log("Sheets no disponible:", e);
-  }
-}
-
-async function sincronizarConSheets(datos) {
-  try {
-    const encoded = encodeURIComponent(JSON.stringify(datos));
-    await fetch(API_URL + "?action=save&data=" + encoded);
-    console.log("Sincronizado con Sheets OK");
-  } catch(e) {
-    console.log("Sheets no disponible:", e);
-  }
+    await fetch(SUPA_URL + "/rest/v1/lab_datos?id=eq.principal", {
+      method: "PATCH",
+      headers: SUPA_HEADERS,
+      body: JSON.stringify({ datos: datos, updated_at: new Date().toISOString() })
+    });
+    console.log("Guardado en Supabase OK");
+  } catch(e) { console.error("Error guardando en Supabase:", e); }
 }
 
 // ── DATOS INICIALES ──────────────────────────────────────────────
