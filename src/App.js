@@ -12,13 +12,21 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxiiGD9lYWShEghXs9lWJre
 // ── API HELPERS ──────────────────────────────────────────────────
 async function cargarDatos() {
   try {
-    const r = await fetch(API_URL);
-    const json = await r.json();
-    if (json.ok && json.data && json.data !== "{}") {
-      let raw = json.data;
-      const idx = raw.indexOf("{");
-      if (idx > 0) raw = raw.substring(idx);
-      return JSON.parse(raw);
+    const r = await fetch(API_URL + "?t=" + Date.now(), {
+      method: "GET",
+      redirect: "follow",
+    });
+    const text = await r.text();
+    let raw = text;
+    const idx = raw.indexOf("{");
+    if (idx > 0) raw = raw.substring(idx);
+    // Buscar el campo data dentro del JSON
+    const outer = JSON.parse(raw);
+    if (outer.ok && outer.data && outer.data !== "{}") {
+      let inner = outer.data;
+      const idx2 = inner.indexOf("{");
+      if (idx2 > 0) inner = inner.substring(idx2);
+      return JSON.parse(inner);
     }
   } catch (e) { console.error("Error cargando:", e); }
   return null;
