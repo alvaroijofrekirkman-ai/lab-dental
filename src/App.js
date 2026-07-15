@@ -16,99 +16,22 @@ async function cargarDatos() {
     const json = await r.json();
     if (json.ok && json.data && json.data !== "{}") {
       let raw = json.data;
-      // Si tiene timestamp al inicio (ej: "2026-06-05T...\t{...}"), extraer solo el JSON
       const idx = raw.indexOf("{");
       if (idx > 0) raw = raw.substring(idx);
-      const datosSheets = JSON.parse(raw);
-      // ── PROTECCIÓN: comparar con backup local ──────────────────
-      const backupStr = localStorage.getItem("lab_backup");
-      if (backupStr) {
-        const backup = JSON.parse(backupStr);
-        const tSheets = datosSheets.trabajos?.length || 0;
-        const tBackup = backup.trabajos?.length || 0;
-        const gSheets = datosSheets.gastos?.length || 0;
-        const gBackup = backup.gastos?.length || 0;
-        if (tBackup - tSheets > 3 || gBackup - gSheets > 3) {
-          const fecha = localStorage.getItem("lab_backup_fecha") || "desconocida";
-          const usar = window.confirm(
-            "⚠️ ALERTA: Los datos del servidor parecen incompletos.\n\n" +
-            "Servidor: " + tSheets + " trabajos, " + gSheets + " gastos\n" +
-            "Backup local (" + fecha + "): " + tBackup + " trabajos, " + gBackup + " gastos\n\n" +
-            "¿Deseas cargar desde el backup local?"
-          );
-          if (usar) return backup;
-        }
-      }
-      localStorage.setItem("lab_backup", JSON.stringify(datosSheets));
-      localStorage.setItem("lab_backup_fecha", new Date().toLocaleString("es-CL"));
-      localStorage.setItem("lab_backup_count", JSON.stringify({ trabajos: datosSheets.trabajos?.length||0, gastos: datosSheets.gastos?.length||0, clinicas: datosSheets.clinicas?.length||0 }));
-      return datosSheets;
+      return JSON.parse(raw);
     }
-  } catch (e) {
-    console.error("Error cargando:", e);
-    const backupStr = localStorage.getItem("lab_backup");
-    if (backupStr) {
-      const fecha = localStorage.getItem("lab_backup_fecha") || "desconocida";
-      const usar = window.confirm("❌ No se pudo conectar al servidor.\n\n¿Cargar desde backup local (" + fecha + ")?");
-      if (usar) return JSON.parse(backupStr);
-    }
-  }
+  } catch (e) { console.error("Error cargando:", e); }
   return null;
 }
 
 async function guardarDatos(datos) {
   try {
-    // ── PROTECCIÓN: solo bloquear si hay pérdida masiva vs sesión actual ──
-    const sessionCountStr = sessionStorage.getItem("lab_session_count");
-    if (sessionCountStr) {
-      const sessionCount = JSON.parse(sessionCountStr);
-      const trabajosActuales = sessionCount.trabajos || 0;
-      const trabajosNuevos = datos.trabajos?.length || 0;
-      const gastosActuales = sessionCount.gastos || 0;
-      const gastosNuevos = datos.gastos?.length || 0;
-      if (trabajosActuales - trabajosNuevos > 5 || gastosActuales - gastosNuevos > 5) {
-        const confirmar = window.confirm(
-          `⚠️ ADVERTENCIA: Se detectó una posible pérdida de datos.\n\n` +
-          `Trabajos: ${trabajosActuales} → ${trabajosNuevos}\n` +
-          `Gastos: ${gastosActuales} → ${gastosNuevos}\n\n` +
-          `¿Estás seguro de que quieres guardar?`
-        );
-        if (!confirmar) return;
-      }
-    }
-    // Actualizar contador de sesión
-    sessionStorage.setItem("lab_session_count", JSON.stringify({
-      trabajos: datos.trabajos?.length || 0,
-      gastos: datos.gastos?.length || 0,
-    }));
-    // ── BACKUP LOCAL automático antes de guardar en Sheets ───────
-    const ahora = new Date().toLocaleString("es-CL");
-    localStorage.setItem("lab_backup", JSON.stringify(datos));
-    localStorage.setItem("lab_backup_fecha", ahora);
-    localStorage.setItem("lab_backup_count", JSON.stringify({
-      trabajos: datos.trabajos?.length || 0,
-      gastos: datos.gastos?.length || 0,
-      clinicas: datos.clinicas?.length || 0,
-    }));
-    // ── Guardar en Google Sheets ─────────────────────────────────
     await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(datos),
     });
   } catch (e) { console.error("Error guardando:", e); }
-}
-
-// ── Restaurar desde backup local si Sheets falla ─────────────────
-function restaurarDesdeBackup() {
-  const backupStr = localStorage.getItem("lab_backup");
-  if (!backupStr) return null;
-  try {
-    return JSON.parse(backupStr);
-  } catch (e) {
-    console.error("Error leyendo backup:", e);
-    return null;
-  }
 }
 
 // ── DATOS INICIALES ──────────────────────────────────────────────
@@ -1002,20 +925,13 @@ export default function App() {
             )}
           </div>
           <div style={{ textAlign:"right" }}>
-            <div style={{ textAlign:"right" }}>
-              <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.8)", cursor:"pointer" }} onClick={()=>{
-                sessionStorage.removeItem("lab_auth"); sessionStorage.removeItem("lab_usuario");
-                const accesos = JSON.parse(localStorage.getItem("lab_accesos") || "[]");
-                accesos.push({ usuario: usuarioActual, fecha: new Date().toLocaleString("es-CL"), accion: "LOGOUT" });
-                localStorage.setItem("lab_accesos", JSON.stringify(accesos));
-                setLogueado(false);
-              }}>🔓 {usuarioActual} · Salir</p>
-              {(() => {
-                const fecha = localStorage.getItem("lab_backup_fecha");
-                const count = JSON.parse(localStorage.getItem("lab_backup_count") || "null");
-                return fecha ? <p style={{ fontSize:"9px", color:"rgba(255,255,255,0.5)" }}>💾 Backup: {fecha} · {count?.trabajos||0}T/{count?.gastos||0}G</p> : null;
-              })()}
-            </div>
+            <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.8)", cursor:"pointer" }} onClick={()=>{
+              sessionStorage.removeItem("lab_auth"); sessionStorage.removeItem("lab_usuario");
+              const accesos = JSON.parse(localStorage.getItem("lab_accesos") || "[]");
+              accesos.push({ usuario: usuarioActual, fecha: new Date().toLocaleString("es-CL"), accion: "LOGOUT" });
+              localStorage.setItem("lab_accesos", JSON.stringify(accesos));
+              setLogueado(false);
+            }}>🔓 {usuarioActual} · Salir</p>
             {stockBajo.length > 0 && <p style={{ fontSize:"11px", color:"#f59e0b", fontWeight:700 }}>⚠ {stockBajo.length} stock bajo</p>}
           </div>
         </div>
