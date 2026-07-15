@@ -26,11 +26,8 @@ async function cargarDatos() {
 
 async function guardarDatos(datos) {
   try {
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(datos),
-    });
+    const encoded = encodeURIComponent(JSON.stringify(datos));
+    await fetch(API_URL + "?action=save&data=" + encoded);
   } catch (e) { console.error("Error guardando:", e); }
 }
 
