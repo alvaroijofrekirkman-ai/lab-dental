@@ -10,7 +10,25 @@ const USUARIOS = [
 const API_URL = "https://script.google.com/macros/s/AKfycbzE1qNE6vOJK7IEYzqSLJa_7Vcwr7C-LtU5s6hgH30tW8wIPzgvgSj89o6GpaJlmTCp/exec";
 
 // ── API HELPERS ──────────────────────────────────────────────────
+const LS_KEY = "lab_dental_datos";
+
 async function cargarDatos() {
+  // 1. Intentar cargar desde localStorage primero
+  try {
+    const local = localStorage.getItem(LS_KEY);
+    if (local) {
+      const parsed = JSON.parse(local);
+      // Si tiene datos de junio o julio, usar localStorage
+      if (parsed.trabajos && parsed.trabajos.length > 26) {
+        console.log("Cargando desde localStorage:", parsed.trabajos.length, "trabajos");
+        // Intentar sincronizar con Sheets en background
+        sincronizarConSheets(parsed);
+        return parsed;
+      }
+    }
+  } catch(e) { console.error("Error leyendo localStorage:", e); }
+
+  // 2. Si localStorage está vacío o tiene pocos datos, cargar desde Sheets
   try {
     const r = await fetch(API_URL);
     const json = await r.json();
@@ -18,17 +36,37 @@ async function cargarDatos() {
       let raw = json.data;
       const idx = raw.indexOf("{");
       if (idx > 0) raw = raw.substring(idx);
-      return JSON.parse(raw);
+      const datos = JSON.parse(raw);
+      // Guardar en localStorage
+      localStorage.setItem(LS_KEY, JSON.stringify(datos));
+      console.log("Cargado desde Sheets:", datos.trabajos?.length, "trabajos");
+      return datos;
     }
-  } catch (e) { console.error("Error cargando:", e); }
+  } catch (e) { console.error("Error cargando desde Sheets:", e); }
+  
   return null;
 }
 
 async function guardarDatos(datos) {
+  // 1. Guardar en localStorage INMEDIATAMENTE (nunca falla)
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(datos));
+    console.log("Guardado en localStorage:", datos.trabajos?.length, "trabajos");
+  } catch(e) { console.error("Error guardando en localStorage:", e); }
+  
+  // 2. Intentar sincronizar con Sheets en background (no bloquea)
+  sincronizarConSheets(datos);
+}
+
+async function sincronizarConSheets(datos) {
   try {
     const encoded = encodeURIComponent(JSON.stringify(datos));
     await fetch(API_URL + "?action=save&data=" + encoded);
-  } catch (e) { console.error("Error guardando:", e); }
+    console.log("Sincronizado con Sheets OK");
+  } catch(e) {
+    // No importa si falla - localStorage ya tiene los datos
+    console.log("Sheets no disponible, datos en localStorage");
+  }
 }
 
 // ── DATOS INICIALES ──────────────────────────────────────────────
