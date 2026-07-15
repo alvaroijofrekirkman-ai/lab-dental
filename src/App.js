@@ -89,6 +89,7 @@ async function guardarDatos(datos) {
     // ── Guardar en Google Sheets ─────────────────────────────────
     await fetch(API_URL, {
       method: "POST",
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(datos),
     });
   } catch (e) { console.error("Error guardando:", e); }
