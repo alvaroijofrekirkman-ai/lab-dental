@@ -1006,18 +1006,71 @@ export default function App() {
               </select>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-              {[
-                { l:"Ingresos", v:fmt(mesActual.ingresos), c:"#22d3ee" },
-                { l:"Gastos", v:fmt(mesActual.gastos), c:"#f87171" },
-                { l:"Resultado neto", v:fmt(mesActual.ingresos-mesActual.gastos), c: mesActual.ingresos-mesActual.gastos>=0?"#4ade80":"#f87171" },
-                { l:"Trabajos", v:mesActual.count, c:"#fff" },
-              ].map(k => (
-                <div key={k.l} className="card" style={{ padding:"16px" }}>
-                  <p className="lbl">{k.l}</p>
-                  <p style={{ fontSize:"16px", fontWeight:700, color:k.c }}>{k.v}</p>
+            {/* ── Saldo cuenta corriente ── */}
+            <div className="card" style={{ padding:"16px", background:"linear-gradient(135deg,#0369a1,#0ea5e9)", border:"none" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", fontWeight:700, textTransform:"uppercase", letterSpacing:"2px", marginBottom:"4px" }}>🏦 Saldo Cuenta Corriente</p>
+                  <p style={{ fontSize:"26px", fontWeight:800, color:"#fff" }}>{fmt(capitalBase)}</p>
+                  <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.7)" }}>Scotiabank N° 993705659</p>
                 </div>
-              ))}
+                <button onClick={()=>{
+                  const nuevo = prompt("Actualizar saldo cuenta corriente ($):", capitalBase);
+                  if(nuevo !== null && !isNaN(Number(nuevo.replace(/[.$]/g,"")))) {
+                    const val = Number(nuevo.replace(/[.$]/g,""));
+                    setCapitalBase(val); setCapitalInput(String(val));
+                    guardarTodo(trabajos,clinicas,gastos,inventario,val,facturas,eventos,metas,deudas,actividad);
+                  }
+                }} style={{ background:"rgba(255,255,255,0.2)", border:"1px solid rgba(255,255,255,0.4)", color:"#fff", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", fontSize:"12px", fontWeight:700 }}>✏️ Actualizar</button>
+              </div>
+            </div>
+
+            {/* ── Stats del mes ── */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px" }}>
+              <div className="card" style={{ padding:"16px" }}>
+                <p className="lbl">💰 Ingresos</p>
+                <p style={{ fontSize:"16px", fontWeight:700, color:"#0369a1" }}>{fmt(mesActual.ingresos)}</p>
+              </div>
+              <div className="card" style={{ padding:"16px", borderColor:"#fca5a5" }}>
+                <p className="lbl">💸 Gastos totales</p>
+                <p style={{ fontSize:"16px", fontWeight:700, color:"#dc2626" }}>{fmt(mesActual.gastos)}</p>
+                <p style={{ fontSize:"10px", color:"#94a3b8", marginTop:"2px" }}>
+                  Fijos: {fmt(gastos.filter(g=>g.mes===filtroMes&&g.tipo_gasto==="Fijo").reduce((s,g)=>s+Number(g.valor_total||0),0))} · 
+                  Var: {fmt(gastos.filter(g=>g.mes===filtroMes&&g.tipo_gasto==="Variable").reduce((s,g)=>s+Number(g.valor_total||0),0))}
+                </p>
+              </div>
+              <div className="card" style={{ padding:"16px", borderColor: mesActual.ingresos-mesActual.gastos>=0?"#86efac":"#fca5a5" }}>
+                <p className="lbl">📈 Utilidad neta</p>
+                <p style={{ fontSize:"16px", fontWeight:700, color: mesActual.ingresos-mesActual.gastos>=0?"#15803d":"#dc2626" }}>{fmt(mesActual.ingresos-mesActual.gastos)}</p>
+              </div>
+            </div>
+
+            {/* ── Trabajos y stock bajo ── */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
+              <div className="card" style={{ padding:"16px" }}>
+                <p className="lbl">🔧 Trabajos del mes</p>
+                <p style={{ fontSize:"20px", fontWeight:700, color:"#0c2340" }}>{mesActual.count}</p>
+                <p style={{ fontSize:"11px", color:"#64748b", marginTop:"2px" }}>
+                  Entregados: {trabajos.filter(t=>t.mes===filtroMes&&(t.estado_trabajo==="ENTREGADO"||t.entregado)).length} · 
+                  En proceso: {trabajos.filter(t=>t.mes===filtroMes&&t.estado_trabajo==="EN PROCESO").length}
+                </p>
+              </div>
+              <div className="card" style={{ padding:"16px", borderColor: inventario.filter(i=>i.cantidad<=i.cantidad_minima).length>0?"#fca5a5":"#bae6fd" }}>
+                <p className="lbl">📦 Stock bajo</p>
+                <p style={{ fontSize:"20px", fontWeight:700, color: inventario.filter(i=>i.cantidad<=i.cantidad_minima).length>0?"#dc2626":"#15803d" }}>
+                  {inventario.filter(i=>i.cantidad<=i.cantidad_minima).length} producto{inventario.filter(i=>i.cantidad<=i.cantidad_minima).length!==1?"s":""}
+                </p>
+                {inventario.filter(i=>i.cantidad<=i.cantidad_minima).length > 0 && (
+                  <div style={{ marginTop:"6px" }}>
+                    {inventario.filter(i=>i.cantidad<=i.cantidad_minima).slice(0,3).map(i=>(
+                      <p key={i.id} style={{ fontSize:"10px", color:"#dc2626" }}>⚠️ {i.descripcion} ({i.cantidad} {i.medida})</p>
+                    ))}
+                    {inventario.filter(i=>i.cantidad<=i.cantidad_minima).length > 3 && (
+                      <p style={{ fontSize:"10px", color:"#94a3b8" }}>+{inventario.filter(i=>i.cantidad<=i.cantidad_minima).length-3} más...</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="card" style={{ padding:"16px" }}>
