@@ -1976,7 +1976,8 @@ export default function App() {
         {/* ════ DEUDAS ════ */}
         {tab === "deudas" && (() => {
           const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
-          const [mesDeuda, setMesDeuda] = React.useState(filtroMes);
+          // Usar filtroMes directamente (mismo selector que el resto de la app)
+          const mesDeuda = filtroMes;
 
           // Trabajos del mes agrupados por clínica
           const trabajosMes = trabajos.filter(t => t.mes === mesDeuda);
@@ -2004,9 +2005,7 @@ export default function App() {
                   <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340" }}>💰 Resumen de cobro</p>
                   <p style={{ fontSize:"12px", color:"#64748b" }}>Trabajos realizados por clínica</p>
                 </div>
-                <select className="inp" style={{ width:"160px" }} value={mesDeuda} onChange={e=>setMesDeuda(e.target.value)}>
-                  {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+<p style={{ fontSize:"12px", color:"#64748b", background:"#f0f9ff", padding:"6px 14px", borderRadius:"6px", border:"1px solid #bae6fd" }}>📅 {mesLabel(filtroMes)}</p>
               </div>
 
               {/* Resumen total */}
