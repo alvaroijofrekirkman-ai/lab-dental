@@ -1215,8 +1215,107 @@ export default function App() {
               const factCompra = facturas.filter(f=>f.mes===filtroMes&&f.tipo==="compra");
               const totalGastos = gastosFiltrados.reduce((s,g)=>s+Number(g.valor_total||0),0);
               const totalFactComp = factCompra.reduce((s,f)=>s+Number(f.monto||0),0);
+              const totalMes = totalGastos + totalFactComp;
+              const gastosFijos = gastosFiltrados.filter(g=>g.tipo_gasto==="Fijo");
+              const gastosVariables = gastosFiltrados.filter(g=>g.tipo_gasto==="Variable");
+              const totalFijos = gastosFijos.reduce((s,g)=>s+Number(g.valor_total||0),0);
+              const totalVariables = gastosVariables.reduce((s,g)=>s+Number(g.valor_total||0),0);
+              const ingresosMes = trabajos.filter(t=>t.mes===filtroMes).reduce((s,t)=>s+Number(t.valor||0),0);
+              const utilidadNeta = ingresosMes - totalMes;
+              // Comparativo mes a mes (últimos 5 meses)
+              const mesesComparativos = (() => {
+                const [y,m] = filtroMes.split("-").map(Number);
+                const meses = [];
+                for(let i=4;i>=0;i--) {
+                  let mm = m - i; let yy = y;
+                  if(mm<=0){mm+=12;yy--;}
+                  const key = `${yy}-${String(mm).padStart(2,"0")}`;
+                  const label = new Date(yy,mm-1,1).toLocaleDateString("es-CL",{month:"short",year:"2-digit"});
+                  const gMes = gastos.filter(g=>g.mes===key).reduce((s,g)=>s+Number(g.valor_total||0),0);
+                  const iMes = trabajos.filter(t=>t.mes===key).reduce((s,t)=>s+Number(t.valor||0),0);
+                  meses.push({key,label,gastos:gMes,ingresos:iMes,utilidad:iMes-gMes});
+                }
+                return meses;
+              })();
+              const maxBarVal = Math.max(...mesesComparativos.map(m=>Math.max(m.gastos,m.ingresos)),1);
+              // Saldo cuenta corriente (capitalBase como referencia)
               return (
-                <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+
+                  {/* ── RESUMEN EJECUTIVO ── */}
+                  <div className="card" style={{ padding:"16px", background:"linear-gradient(135deg,#0369a1,#0ea5e9)", border:"none" }}>
+                    <p style={{ fontSize:"10px", fontWeight:700, color:"rgba(255,255,255,0.7)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>
+                      📊 Resumen ejecutivo · {mesLabel(filtroMes)}
+                    </p>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:"12px" }}>
+                      <div>
+                        <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", marginBottom:"2px" }}>💰 Ingresos</p>
+                        <p style={{ fontSize:"15px", fontWeight:800, color:"#fff" }}>{fmt(ingresosMes)}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", marginBottom:"2px" }}>💸 Gastos</p>
+                        <p style={{ fontSize:"15px", fontWeight:800, color:"#fca5a5" }}>{fmt(totalMes)}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", marginBottom:"2px" }}>📈 Utilidad neta</p>
+                        <p style={{ fontSize:"15px", fontWeight:800, color:utilidadNeta>=0?"#86efac":"#fca5a5" }}>{fmt(utilidadNeta)}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", marginBottom:"2px" }}>🏦 Saldo cta. cte.</p>
+                        <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                          <p style={{ fontSize:"15px", fontWeight:800, color:"#fff" }}>{fmt(capitalBase)}</p>
+                          <button onClick={()=>{
+                            const nuevo = prompt("Saldo actual cuenta corriente ($):", capitalBase);
+                            if(nuevo && !isNaN(Number(nuevo.replace(/\./g,"").replace(",",".")))) {
+                              const val = Number(nuevo.replace(/\./g,"").replace(",","."));
+                              setCapitalBase(val); setCapitalInput(String(val));
+                              guardarTodo(trabajos,clinicas,gastos,inventario,val,facturas,eventos,metas,deudas,actividad);
+                            }
+                          }} style={{ background:"rgba(255,255,255,0.2)", border:"1px solid rgba(255,255,255,0.4)", color:"#fff", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", fontSize:"10px" }}>✏️</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── FIJOS vs VARIABLES ── */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+                    <div className="card" style={{ padding:"14px" }}>
+                      <p className="lbl">🔒 Gastos fijos</p>
+                      <p style={{ fontSize:"16px", fontWeight:700, color:"#dc2626" }}>{fmt(totalFijos)}</p>
+                      <p style={{ fontSize:"11px", color:"#64748b" }}>{gastosFijos.length} ítem{gastosFijos.length!==1?"s":""}</p>
+                    </div>
+                    <div className="card" style={{ padding:"14px" }}>
+                      <p className="lbl">📦 Gastos variables</p>
+                      <p style={{ fontSize:"16px", fontWeight:700, color:"#ea580c" }}>{fmt(totalVariables)}</p>
+                      <p style={{ fontSize:"11px", color:"#64748b" }}>{gastosVariables.length} ítem{gastosVariables.length!==1?"s":""}</p>
+                    </div>
+                    <div className="card" style={{ padding:"14px", borderColor:"#fca5a5" }}>
+                      <p className="lbl">💸 Total gastos</p>
+                      <p style={{ fontSize:"16px", fontWeight:700, color:"#dc2626" }}>{fmt(totalMes)}</p>
+                      <p style={{ fontSize:"11px", color:"#64748b" }}>+{factCompra.length} fact. compra</p>
+                    </div>
+                  </div>
+
+                  {/* ── COMPARATIVO MES A MES ── */}
+                  <div className="card" style={{ padding:"16px" }}>
+                    <p className="lbl" style={{ marginBottom:"14px" }}>📅 Comparativo últimos 5 meses</p>
+                    <div style={{ display:"flex", alignItems:"flex-end", gap:"8px", height:"120px", marginBottom:"8px" }}>
+                      {mesesComparativos.map((m,i)=>(
+                        <div key={m.key} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"3px", height:"100%" }}>
+                          <div style={{ flex:1, width:"100%", display:"flex", flexDirection:"column", justifyContent:"flex-end", gap:"2px" }}>
+                            <div title={`Ingresos: ${fmt(m.ingresos)}`} style={{ width:"100%", background:"#0ea5e9", borderRadius:"3px 3px 0 0", height:`${Math.round(m.ingresos/maxBarVal*100)}%`, minHeight:m.ingresos>0?4:0, opacity: m.key===filtroMes?1:0.5 }}/>
+                            <div title={`Gastos: ${fmt(m.gastos)}`} style={{ width:"100%", background:"#f87171", borderRadius:"3px 3px 0 0", height:`${Math.round(m.gastos/maxBarVal*100)}%`, minHeight:m.gastos>0?4:0, opacity: m.key===filtroMes?1:0.5 }}/>
+                          </div>
+                          <p style={{ fontSize:"10px", color: m.key===filtroMes?"#0369a1":"#94a3b8", fontWeight: m.key===filtroMes?700:400 }}>{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display:"flex", gap:"16px", justifyContent:"center" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"10px", height:"10px", background:"#0ea5e9", borderRadius:"2px" }}/><span style={{ fontSize:"11px", color:"#64748b" }}>Ingresos</span></div>
+                      <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"10px", height:"10px", background:"#f87171", borderRadius:"2px" }}/><span style={{ fontSize:"11px", color:"#64748b" }}>Gastos</span></div>
+                    </div>
+                  </div>
+
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
                     <div className="card" style={{ padding:"14px" }}>
                       <p className="lbl">Gastos registrados</p>
