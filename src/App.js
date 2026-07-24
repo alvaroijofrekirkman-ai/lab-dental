@@ -1976,133 +1976,112 @@ export default function App() {
         {/* ════ DEUDAS ════ */}
         {tab === "deudas" && (() => {
           const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
-          
-          // Trabajos FACTURADOS agrupados por clínica (deudas automáticas)
-          const facturadosPorClinica = {};
-          trabajos.filter(t => t.estado_pago === "FACTURADO").forEach(t => {
-            if (!facturadosPorClinica[t.clinica]) facturadosPorClinica[t.clinica] = { trabajos:[], total:0 };
-            facturadosPorClinica[t.clinica].trabajos.push(t);
-            facturadosPorClinica[t.clinica].total += Number(t.valor);
-          });
-          const totalFacturado = Object.values(facturadosPorClinica).reduce((s,c)=>s+c.total,0);
+          const [mesDeuda, setMesDeuda] = React.useState(filtroMes);
 
-          const deudaPendiente = deudas.filter(d=>d.estado==="PENDIENTE").reduce((s,d)=>s+Number(d.monto||0),0);
-          const deudaCobrada = deudas.filter(d=>d.estado==="COBRADA").reduce((s,d)=>s+Number(d.monto||0),0);
+          // Trabajos del mes agrupados por clínica
+          const trabajosMes = trabajos.filter(t => t.mes === mesDeuda);
+          const porClinica = {};
+          trabajosMes.forEach(t => {
+            if (!t.clinica) return;
+            if (!porClinica[t.clinica]) porClinica[t.clinica] = { trabajos:[], total:0, pagado:0, pendiente:0 };
+            const val = Number(t.valor||0);
+            porClinica[t.clinica].trabajos.push(t);
+            porClinica[t.clinica].total += val;
+            if (t.estado_pago === "PAGADO") porClinica[t.clinica].pagado += val;
+            else porClinica[t.clinica].pendiente += val;
+          });
+          const clinicasOrdenadas = Object.entries(porClinica).sort((a,b)=>b[1].total-a[1].total);
+          const totalMesDeuda = clinicasOrdenadas.reduce((s,[,c])=>s+c.total,0);
+          const totalPendiente = clinicasOrdenadas.reduce((s,[,c])=>s+c.pendiente,0);
+          const totalPagado = clinicasOrdenadas.reduce((s,[,c])=>s+c.pagado,0);
 
           return (
             <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+
+              {/* Header con selector de mes */}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <p style={{ fontSize:"13px", color:"#64748b" }}>{deudas.filter(d=>d.estado==="PENDIENTE").length + Object.keys(facturadosPorClinica).length} deudas pendientes</p>
-                <button style={{ background:"#0ea5e9", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={()=>setShowFormD(true)}>+ Deuda manual</button>
-              </div>
-
-              {/* KPIs */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
-                <div style={{ background:"#ffffff", border:"1px solid #7c2d12", borderRadius:"10px", padding:"14px" }}>
-                  <p style={{ fontSize:"10px", color:"#64748b", marginBottom:"4px" }}>Trabajos facturados</p>
-                  <p style={{ fontSize:"16px", fontWeight:700, color:"#fb923c" }}>{fmtCLP(totalFacturado)}</p>
-                </div>
-                <div style={{ background:"#ffffff", border:"1px solid #7f1d1d", borderRadius:"10px", padding:"14px" }}>
-                  <p style={{ fontSize:"10px", color:"#64748b", marginBottom:"4px" }}>Deudas manuales</p>
-                  <p style={{ fontSize:"16px", fontWeight:700, color:"#f87171" }}>{fmtCLP(deudaPendiente)}</p>
-                </div>
-                <div style={{ background:"#ffffff", border:"1px solid #14532d", borderRadius:"10px", padding:"14px" }}>
-                  <p style={{ fontSize:"10px", color:"#64748b", marginBottom:"4px" }}>Cobradas</p>
-                  <p style={{ fontSize:"16px", fontWeight:700, color:"#4ade80" }}>{fmtCLP(deudaCobrada)}</p>
-                </div>
-              </div>
-
-              {/* TRABAJOS FACTURADOS AUTOMÁTICOS */}
-              {Object.keys(facturadosPorClinica).length > 0 && (
                 <div>
-                  <p style={{ fontSize:"11px", color:"#fb923c", fontWeight:700, marginBottom:"8px", textTransform:"uppercase", letterSpacing:"1px" }}>🧾 Trabajos facturados sin cobrar</p>
-                  {Object.entries(facturadosPorClinica).map(([clinica, data]) => (
-                    <div key={clinica} style={{ background:"#ffffff", border:"1px solid #7c2d12", borderRadius:"10px", padding:"16px", marginBottom:"8px" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap", marginBottom:"8px" }}>
-                        <div>
-                          <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{clinica}</p>
-                          <p style={{ fontSize:"12px", color:"#64748b" }}>{data.trabajos.length} trabajo{data.trabajos.length>1?"s":""} facturado{data.trabajos.length>1?"s":""}</p>
-                        </div>
-                        <p style={{ fontWeight:700, fontSize:"18px", color:"#fb923c" }}>{fmtCLP(data.total)}</p>
-                      </div>
-                      {data.trabajos.map(t => (
-                        <div key={t.id} style={{ display:"flex", justifyContent:"space-between", padding:"6px 8px", background:"#f0f9ff", borderRadius:"6px", marginBottom:"4px", fontSize:"12px" }}>
-                          <span style={{ color:"#0c2340" }}>🦷 {t.tipo} {t.paciente&&t.paciente!=="-"?`· ${t.paciente}`:""}</span>
-                          <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
-                            <span style={{ color:"#64748b" }}>{t.mes}</span>
-                            <span style={{ color:"#fb923c", fontWeight:700 }}>{fmtCLP(t.valor)}</span>
-                          </div>
-                        </div>
-                      ))}
-                      <p style={{ fontSize:"10px", color:"#64748b", marginTop:"6px" }}>💡 Cambia el estado a "PAGADO" en Trabajos cuando cobres</p>
-                    </div>
-                  ))}
+                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340" }}>💰 Resumen de cobro</p>
+                  <p style={{ fontSize:"12px", color:"#64748b" }}>Trabajos realizados por clínica</p>
+                </div>
+                <select className="inp" style={{ width:"160px" }} value={mesDeuda} onChange={e=>setMesDeuda(e.target.value)}>
+                  {MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+
+              {/* Resumen total */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+                <div className="card" style={{ padding:"14px", background:"linear-gradient(135deg,#0369a1,#0ea5e9)", border:"none" }}>
+                  <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", marginBottom:"4px" }}>TOTAL DEL MES</p>
+                  <p style={{ fontSize:"18px", fontWeight:800, color:"#fff" }}>{fmtCLP(totalMesDeuda)}</p>
+                  <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.7)" }}>{trabajosMes.length} trabajo{trabajosMes.length!==1?"s":""}</p>
+                </div>
+                <div className="card" style={{ padding:"14px", borderColor:"#fca5a5" }}>
+                  <p style={{ fontSize:"10px", color:"#64748b", marginBottom:"4px" }}>POR COBRAR</p>
+                  <p style={{ fontSize:"18px", fontWeight:800, color:"#dc2626" }}>{fmtCLP(totalPendiente)}</p>
+                  <p style={{ fontSize:"11px", color:"#64748b" }}>{clinicasOrdenadas.filter(([,c])=>c.pendiente>0).length} clínica{clinicasOrdenadas.filter(([,c])=>c.pendiente>0).length!==1?"s":""}</p>
+                </div>
+                <div className="card" style={{ padding:"14px", borderColor:"#86efac" }}>
+                  <p style={{ fontSize:"10px", color:"#64748b", marginBottom:"4px" }}>YA COBRADO</p>
+                  <p style={{ fontSize:"18px", fontWeight:800, color:"#15803d" }}>{fmtCLP(totalPagado)}</p>
+                  <p style={{ fontSize:"11px", color:"#64748b" }}>{clinicasOrdenadas.filter(([,c])=>c.pagado>0).length} clínica{clinicasOrdenadas.filter(([,c])=>c.pagado>0).length!==1?"s":""}</p>
+                </div>
+              </div>
+
+              {/* Por clínica */}
+              {clinicasOrdenadas.length === 0 && (
+                <div className="card" style={{ padding:"40px", textAlign:"center", color:"#64748b" }}>
+                  <p style={{ fontSize:"32px", marginBottom:"8px" }}>📋</p>
+                  <p>No hay trabajos registrados en {mesLabel(mesDeuda)}</p>
                 </div>
               )}
 
-              {/* DEUDAS MANUALES */}
-              {deudas.length===0 && Object.keys(facturadosPorClinica).length===0 && (
-                <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"10px", padding:"40px", textAlign:"center", color:"#64748b" }}>Sin deudas registradas</div>
-              )}
-              
-              {["PENDIENTE","COBRADA"].map(estado => {
-                const lista = deudas.filter(d=>d.estado===estado);
-                if (lista.length===0) return null;
-                return (
-                  <div key={estado}>
-                    <p style={{ fontSize:"11px", color: estado==="PENDIENTE"?"#f87171":"#4ade80", fontWeight:700, marginBottom:"8px", textTransform:"uppercase", letterSpacing:"1px" }}>{estado==="PENDIENTE"?"⏳ Deudas manuales pendientes":"✅ Cobradas"}</p>
-                    {lista.map(d => (
-                      <div key={d.id} style={{ background:"#ffffff", border:`1px solid ${d.estado==="PENDIENTE"?"#7f1d1d":"#14532d"}`, borderRadius:"10px", padding:"16px", marginBottom:"8px" }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
-                          <div style={{ flex:1 }}>
-                            <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px", marginBottom:"3px" }}>{d.clinica}</p>
-                            {d.descripcion && <p style={{ fontSize:"12px", color:"#64748b", marginBottom:"3px" }}>{d.descripcion}</p>}
-                            {d.desde && <p style={{ fontSize:"11px", color:"#64748b" }}>Desde: {d.desde}</p>}
+              {clinicasOrdenadas.map(([nombre, data]) => (
+                <div key={nombre} className="card" style={{ padding:"0", overflow:"hidden" }}>
+                  {/* Header clínica */}
+                  <div style={{ padding:"14px 16px", background: data.pendiente>0?"#fef2f2":"#f0fdf4", borderBottom:"1px solid #e2e8f0", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div>
+                      <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{nombre}</p>
+                      <p style={{ fontSize:"11px", color:"#64748b" }}>{data.trabajos.length} trabajo{data.trabajos.length!==1?"s":""}</p>
+                    </div>
+                    <div style={{ textAlign:"right" }}>
+                      <p style={{ fontSize:"18px", fontWeight:800, color:"#0c2340" }}>{fmtCLP(data.total)}</p>
+                      <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end", marginTop:"2px" }}>
+                        {data.pendiente > 0 && <span style={{ fontSize:"10px", background:"#fee2e2", color:"#dc2626", padding:"2px 8px", borderRadius:"20px", fontWeight:700 }}>Por cobrar: {fmtCLP(data.pendiente)}</span>}
+                        {data.pagado > 0 && <span style={{ fontSize:"10px", background:"#dcfce7", color:"#15803d", padding:"2px 8px", borderRadius:"20px", fontWeight:700 }}>Cobrado: {fmtCLP(data.pagado)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Lista de trabajos */}
+                  <div style={{ padding:"8px 0" }}>
+                    {data.trabajos.map((t,i) => (
+                      <div key={i} style={{ padding:"8px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom: i<data.trabajos.length-1?"1px solid #f1f5f9":"none" }}>
+                        <div style={{ flex:1 }}>
+                          <p style={{ fontSize:"13px", color:"#0c2340", fontWeight:600 }}>{t.tipo}</p>
+                          <div style={{ display:"flex", gap:"8px", marginTop:"2px", flexWrap:"wrap" }}>
+                            {t.paciente && t.paciente !== "-" && <span style={{ fontSize:"11px", color:"#64748b" }}>👤 {t.paciente}</span>}
+                            {t.nro_ot && <span style={{ fontSize:"11px", color:"#94a3b8" }}>{t.nro_ot}</span>}
+                            {t.fecha_ingreso && <span style={{ fontSize:"11px", color:"#94a3b8" }}>📅 {t.fecha_ingreso}</span>}
                           </div>
-                          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
-                            <p style={{ fontWeight:700, fontSize:"16px", color: d.estado==="PENDIENTE"?"#f87171":"#4ade80" }}>{fmtCLP(d.monto||0)}</p>
-                            <div style={{ display:"flex", gap:"4px" }}>
-                              <button onClick={()=>toggleDeuda(d.id)} style={{ fontSize:"11px", padding:"4px 10px", borderRadius:"20px", cursor:"pointer", border:"none", fontFamily:"monospace", fontWeight:700, background: d.estado==="PENDIENTE"?"#14532d":"#7f1d1d", color: d.estado==="PENDIENTE"?"#4ade80":"#f87171" }}>
-                                {d.estado==="PENDIENTE"?"✅ Marcar cobrada":"↩ Reabrir"}
-                              </button>
-                              <button style={{ padding:"5px 10px", fontSize:"12px", borderRadius:"5px", cursor:"pointer", border:"1px solid #bae6fd", background:"transparent", color:"#f87171" }} onClick={()=>delD(d.id)}>🗑</button>
-                            </div>
-                          </div>
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                          <span className={`pill ${PILL_CLASS[t.estado_pago]||"pill-pend"}`}>{t.estado_pago}</span>
+                          <p style={{ fontSize:"14px", fontWeight:700, color: t.estado_pago==="PAGADO"?"#15803d":"#dc2626", minWidth:"80px", textAlign:"right" }}>{fmtCLP(Number(t.valor||0))}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                );
-              })}
-
-              {showFormD && (
-                <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:"16px" }}>
-                  <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"12px", width:"100%", maxWidth:"400px", padding:"24px" }}>
-                    <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"16px", fontWeight:700, color:"#0c2340", marginBottom:"16px" }}>Nueva Deuda</p>
-                    <div style={{ marginBottom:"12px" }}><label style={{ fontSize:"11px", color:"#64748b", display:"block", marginBottom:"4px" }}>Clínica / Deudor</label>
-                      <input style={{ background:"#f8fcff", border:"1px solid #bae6fd", borderRadius:"6px", padding:"8px 12px", color:"#0c2340", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formD.clinica} onChange={e=>setFormD(f=>({...f,clinica:e.target.value}))}/></div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
-                      <div><label style={{ fontSize:"11px", color:"#64748b", display:"block", marginBottom:"4px" }}>Monto ($)</label>
-                        <input type="number" style={{ background:"#f8fcff", border:"1px solid #bae6fd", borderRadius:"6px", padding:"8px 12px", color:"#0c2340", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formD.monto} onChange={e=>setFormD(f=>({...f,monto:e.target.value}))}/></div>
-                      <div><label style={{ fontSize:"11px", color:"#64748b", display:"block", marginBottom:"4px" }}>Desde</label>
-                        <input type="date" style={{ background:"#f8fcff", border:"1px solid #bae6fd", borderRadius:"6px", padding:"8px 12px", color:"#0c2340", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} value={formD.desde} onChange={e=>setFormD(f=>({...f,desde:e.target.value}))}/></div>
-                    </div>
-                    <div style={{ marginBottom:"16px" }}><label style={{ fontSize:"11px", color:"#64748b", display:"block", marginBottom:"4px" }}>Descripción</label>
-                      <textarea style={{ background:"#f8fcff", border:"1px solid #bae6fd", borderRadius:"6px", padding:"8px 12px", color:"#0c2340", width:"100%", fontFamily:"monospace", fontSize:"13px", boxSizing:"border-box" }} rows={2} value={formD.descripcion} onChange={e=>setFormD(f=>({...f,descripcion:e.target.value}))}/></div>
-                    <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
-                      <button style={{ background:"transparent", border:"1px solid #bae6fd", color:"#0369a1", padding:"9px 20px", borderRadius:"7px", fontSize:"13px", cursor:"pointer", fontFamily:"monospace" }} onClick={()=>setShowFormD(false)}>Cancelar</button>
-                      <button style={{ background:"#0ea5e9", color:"#09090b", padding:"9px 20px", borderRadius:"7px", fontWeight:700, fontSize:"13px", cursor:"pointer", border:"none", fontFamily:"monospace" }} onClick={saveD}>Guardar</button>
-                    </div>
+                  {/* Total clínica */}
+                  <div style={{ padding:"10px 16px", background:"#f8fafc", borderTop:"2px solid #e2e8f0", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <p style={{ fontSize:"12px", color:"#64748b", fontWeight:700, textTransform:"uppercase" }}>Total {nombre}</p>
+                    <p style={{ fontSize:"16px", fontWeight:800, color:"#0c2340" }}>{fmtCLP(data.total)}</p>
                   </div>
                 </div>
-              )}
+              ))}
             </div>
           );
         })()}
 
-
-
-        {/* ════ ARANCEL ════ */}
         {tab === "arancel" && (() => {
           const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
           
