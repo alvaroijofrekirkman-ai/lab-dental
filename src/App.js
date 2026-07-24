@@ -480,7 +480,7 @@ export default function App() {
   const [clinicas, setClinicas] = useState([]);
   const [gastos, setGastos] = useState([]);
   const [inventario, setInventario] = useState([]);
-  const [capitalBase, setCapitalBase] = useState(1000000);
+  const [capitalBase, setCapitalBase] = useState(3953706);
 
   const [filtroMes, setFiltroMes] = useState(() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; });
   const [busqueda, setBusqueda] = useState("");
@@ -670,7 +670,16 @@ export default function App() {
     setShowFormG(false); setEditandoG(null); setFormG(emptyG);
   };
   const editG = (g) => { setFormG({ ...g }); setEditandoG(g.id); setShowFormG(true); };
-  const delG = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = gastos.filter(g => g.id !== id); setGastos(next); guardarTodo(trabajos, clinicas, next, inventario, capitalBase, facturas, eventos, metas, deudas, actividad); };
+  const delG = (id) => {
+    if (!window.confirm("¿Eliminar?")) return;
+    const gasto = gastos.find(g=>g.id===id);
+    const nuevoSaldo = capitalBase + Number(gasto?.valor_total||0);
+    const next = gastos.filter(g => g.id !== id);
+    setGastos(next);
+    setCapitalBase(nuevoSaldo);
+    setCapitalInput(String(nuevoSaldo));
+    guardarTodo(trabajos, clinicas, next, inventario, nuevoSaldo, facturas, eventos, metas, deudas, actividad);
+  };
 
   const saveI = () => {
     let next = editandoI !== null ? inventario.map(x => x.id === editandoI ? { ...formI, id: editandoI } : x) : [...inventario, { ...formI, id: Math.max(0, ...inventario.map(x => x.id)) + 1 }];
