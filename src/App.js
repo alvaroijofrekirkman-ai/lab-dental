@@ -1051,7 +1051,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #bae6fd", display:"flex", overflowX:"auto", background:"#f0f9ff" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["ranking","🏆 Ranking"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"],["accesos","🔐 Accesos"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"],["accesos","🔐 Accesos"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1743,12 +1743,16 @@ export default function App() {
         {tab === "clinicas" && (
           <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <p style={{ fontSize:"13px", color:"#64748b" }}>{clinicas.length} clínicas</p>
+              <p style={{ fontSize:"13px", color:"#64748b" }}>{clinicas.length} clínicas · ordenadas por trabajos enviados</p>
               <button className="btn1" onClick={()=>setShowFormC(true)}>+ Clínica</button>
             </div>
-            {clinicas.map(c=>{
+            {[...clinicas]
+              .map(c=>({ c, nTrab: trabajos.filter(t=>t.clinica===c.nombre).length }))
+              .sort((a,b)=> b.nTrab - a.nTrab || a.c.nombre.localeCompare(b.c.nombre))
+              .map(({c}, posIdx)=>{
               const tCli=trabajos.filter(t=>t.clinica===c.nombre);
               const expandida = fichaClinicaId === c.id;
+              const medalla = tCli.length===0 ? "" : (posIdx===0?"🥇":posIdx===1?"🥈":posIdx===2?"🥉":"#"+(posIdx+1));
               const esConvClinica = CLINICAS_CONVENIO.includes(c.nombre);
               return (
                 <div key={c.id} className={esConvClinica?"card-convenio":"card"} style={{ padding:0, overflow:"hidden" }}>
@@ -1774,6 +1778,7 @@ export default function App() {
                     <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"12px" }}>
                       <div>
                         <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px", flexWrap:"wrap" }}>
+                          {medalla && <span style={{ fontSize:"13px", fontWeight:700, color:"#64748b", minWidth:"26px" }}>{medalla}</span>}
                           <p style={{ fontWeight:700, color:esConvClinica?"#92400e":"#0c2340", fontSize:esConvClinica?"16px":"15px" }}>{c.nombre}</p>
                           <span className={`pill ${c.estado==="CLIENTE"?"pill-pagado":"pill-pend"}`}>{c.estado}</span>
                           {esConvClinica && <span className="pill pill-convenio">⭐ CONVENIO ACTIVO</span>}
@@ -2026,119 +2031,6 @@ export default function App() {
                   );
                 })}
                 {Object.keys(metas).length===0 && <p style={{ color:"#64748b", fontSize:"13px" }}>Sin metas registradas aún</p>}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ════ RANKING ANUAL ════ */}
-        {tab === "ranking" && (() => {
-          const fmtCLP = (n) => new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
-          
-          // Ranking por clínica (todo el año)
-          const rankClin = {};
-          trabajos.forEach(t => {
-            if (!rankClin[t.clinica]) rankClin[t.clinica] = { total:0, count:0, cobrado:0 };
-            rankClin[t.clinica].total += Number(t.valor);
-            rankClin[t.clinica].count += 1;
-            if (["PAGADO","FACTURADO"].includes(t.estado_pago)) rankClin[t.clinica].cobrado += Number(t.valor);
-          });
-          const rankArr = Object.entries(rankClin).sort((a,b)=>b[1].total-a[1].total);
-          const maxTotal = rankArr[0]?.[1]?.total || 1;
-
-          // Ranking por área
-          const rankArea = {};
-          trabajos.forEach(t => {
-            if (!rankArea[t.area]) rankArea[t.area] = { total:0, count:0 };
-            rankArea[t.area].total += Number(t.valor);
-            rankArea[t.area].count += 1;
-          });
-          const rankAreaArr = Object.entries(rankArea).sort((a,b)=>b[1].total-a[1].total);
-
-          // Ingresos por mes para gráfico anual
-          const maxIng = Math.max(...MESES.map(m=>(stats.porMes[m.value]||{}).ingresos||0),1);
-
-          return (
-            <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
-              {/* Gráfico anual */}
-              <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"10px", padding:"16px" }}>
-                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#64748b", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"16px" }}>📊 Ingresos mensuales 2026</p>
-                <div style={{ display:"flex", alignItems:"flex-end", gap:"6px", height:"100px" }}>
-                  {MESES.map(m => {
-                    const ing = (stats.porMes[m.value]||{}).ingresos||0;
-                    const gas = (stats.porMes[m.value]||{}).gastos||0;
-                    const h = Math.round(ing/maxIng*88);
-                    const hg = Math.round(gas/maxIng*88);
-                    const esActual = m.value === filtroMes;
-                    return (
-                      <div key={m.value} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
-                        {ing>0 && <p style={{ fontSize:"8px", color:"#64748b" }}>{(ing/1000).toFixed(0)}k</p>}
-                        <div style={{ width:"100%", display:"flex", alignItems:"flex-end", gap:"1px", height:"88px" }}>
-                          <div style={{ flex:1, background: esActual?"#22d3ee":"#164e63", borderRadius:"3px 3px 0 0", height:`${h}%`, minHeight:ing>0?"2px":"0" }}/>
-                          <div style={{ flex:1, background:"#7f1d1d", borderRadius:"3px 3px 0 0", height:`${hg}%`, minHeight:gas>0?"2px":"0" }}/>
-                        </div>
-                        <p style={{ fontSize:"8px", color: esActual?"#22d3ee":"#52525b", fontWeight: esActual?700:400 }}>{m.label.slice(0,3)}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ display:"flex", gap:"16px", marginTop:"8px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"8px", height:"8px", borderRadius:"2px", background:"#0ea5e9" }}/><span style={{ fontSize:"10px", color:"#64748b" }}>Ingresos</span></div>
-                  <div style={{ display:"flex", alignItems:"center", gap:"4px" }}><div style={{ width:"8px", height:"8px", borderRadius:"2px", background:"#7f1d1d" }}/><span style={{ fontSize:"10px", color:"#64748b" }}>Gastos</span></div>
-                </div>
-              </div>
-
-              {/* Ranking clínicas */}
-              <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"10px", padding:"16px" }}>
-                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#64748b", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>🏆 Ranking clínicas — Todo 2026</p>
-                {rankArr.map(([nombre, d], idx) => (
-                  <div key={nombre} style={{ marginBottom:"12px" }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"4px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                        <span style={{ fontSize:"16px", fontWeight:700, color: idx===0?"#fbbf24": idx===1?"#94a3b8": idx===2?"#b45309":"#52525b" }}>{idx===0?"🥇":idx===1?"🥈":idx===2?"🥉":`${idx+1}.`}</span>
-                        <span style={{ color:"#0c2340", fontSize:"13px" }}>{nombre}</span>
-                      </div>
-                      <div style={{ textAlign:"right" }}>
-                        <p style={{ color:"#0ea5e9", fontWeight:700, fontSize:"13px" }}>{fmtCLP(d.total)}</p>
-                        <p style={{ color:"#64748b", fontSize:"11px" }}>{d.count} trabajos</p>
-                      </div>
-                    </div>
-                    <div style={{ background:"#f8fcff", borderRadius:"99px", height:"6px" }}>
-                      <div style={{ background: idx===0?"#fbbf24": idx===1?"#94a3b8": idx===2?"#b45309":"#22d3ee", height:"6px", borderRadius:"99px", width:`${d.total/maxTotal*100}%` }}/>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Ranking por área */}
-              <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"10px", padding:"16px" }}>
-                <p style={{ fontFamily:"'Syne',sans-serif", fontSize:"10px", fontWeight:700, color:"#64748b", textTransform:"uppercase", letterSpacing:"2px", marginBottom:"12px" }}>📋 Por área de trabajo — Todo 2026</p>
-                {rankAreaArr.map(([area, d]) => {
-                  const maxA = rankAreaArr[0]?.[1]?.total||1;
-                  return (
-                    <div key={area} style={{ marginBottom:"10px" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"3px" }}>
-                        <span style={{ color:"#0c2340" }}>{area}</span>
-                        <span style={{ color:"#4ade80", fontWeight:700 }}>{fmtCLP(d.total)} <span style={{ color:"#64748b", fontWeight:400 }}>({d.count} trabajos)</span></span>
-                      </div>
-                      <div style={{ background:"#f8fcff", borderRadius:"99px", height:"5px" }}>
-                        <div style={{ background:"#22c55e", height:"5px", borderRadius:"99px", width:`${d.total/maxA*100}%` }}/>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Totales anuales */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-                <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"10px", padding:"16px" }}>
-                  <p style={{ fontSize:"11px", color:"#64748b", marginBottom:"4px" }}>Total ingresos 2026</p>
-                  <p style={{ fontSize:"18px", fontWeight:700, color:"#0ea5e9" }}>{fmtCLP(trabajos.reduce((s,t)=>s+Number(t.valor),0))}</p>
-                </div>
-                <div style={{ background:"#ffffff", border:"1px solid #bae6fd", borderRadius:"10px", padding:"16px" }}>
-                  <p style={{ fontSize:"11px", color:"#64748b", marginBottom:"4px" }}>Total trabajos 2026</p>
-                  <p style={{ fontSize:"18px", fontWeight:700, color:"#0c2340" }}>{trabajos.length}</p>
-                </div>
               </div>
             </div>
           );
