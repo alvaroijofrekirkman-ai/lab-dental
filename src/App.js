@@ -511,6 +511,14 @@ function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, c
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [mesDeuda, setMesDeuda] = useState("2026-07");
+  // Cobro mensual por clinica
+  const mesActualStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+  const [modoCobro, setModoCobro] = useState(false);
+  const [mesCobro, setMesCobro] = useState(mesActualStr);
+  const [clinicaCobro, setClinicaCobro] = useState("");
+  const [estadoCobro, setEstadoCobro] = useState("FACTURADO");
+  const [lineasCobro, setLineasCobro] = useState([]);
+  const [notaCobro, setNotaCobro] = useState("");
   const [ready, setReady] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
@@ -2479,7 +2487,8 @@ export default function App() {
             "RECHAZADA": { color:"#f87171", bg:"rgba(127,29,29,0.5)", border:"#7f1d1d" },
           };
 
-          const generarPDF = (cot) => {
+          const generarPDF = (cot, modo) => {
+            const esCobro = modo === "cobro";
             const total = cot.items.reduce((s,i)=>s+i.precio*i.cantidad,0);
             const fecha = cot.fecha || cot.fecha_creacion || new Date().toLocaleDateString("es-CL");
 
@@ -2564,15 +2573,15 @@ export default function App() {
     <div class="lab-contact">📞 +569 91315887</div>
   </div>
   <div class="cot-info">
-    <div class="cot-num">${cot.nro || "COT-001"}</div>
+    <div class="cot-num">${esCobro ? "ESTADO DE COBRO" : (cot.nro || "COT-001")}</div>
     <div class="cot-fecha">Fecha: ${fecha}</div>
-    <div class="cot-validez">Válida por ${cot.validez || "30"} días</div>
+    ${esCobro ? `<div class="cot-validez">Período: ${cot.periodo || ""}</div>` : `<div class="cot-validez">Válida por ${cot.validez || "30"} días</div>`}
     ${cot.tipo_precio==="convenio" ? '<div style="margin-top:6px;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:3px 8px;font-size:11px;color:#92400e;font-weight:700;display:inline-block">⭐ Precio Convenio</div>' : ''}
   </div>
 </div>
 
 <div class="destinatario">
-  <div class="dest-label">Cotización para</div>
+  <div class="dest-label">${esCobro ? "Cobro para" : "Cotización para"}</div>
   <div class="dest-name">${cot.clinica || "—"}</div>
   ${cot.doctor ? `<div class="dest-doctor">Dr./Dra. ${cot.doctor}</div>` : ""}
 </div>
@@ -2595,7 +2604,7 @@ export default function App() {
       <td>${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(item.precio*item.cantidad)}</td>
     </tr>`).join("")}
     <tr class="total-row">
-      <td colspan="3">TOTAL COTIZACIÓN</td>
+      <td colspan="3">${esCobro ? "TOTAL A PAGAR" : "TOTAL COTIZACIÓN"}</td>
       <td>${new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(total)}</td>
     </tr>
   </tbody>
@@ -2605,7 +2614,7 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
 
 <div class="footer">
   <p class="gracias">¡Gracias por confiar en Laboratorio Dental Dentis!</p>
-  <p>Bandas no incluidas · Urgencias con cargo adicional</p>
+  <p>${esCobro ? "Detalle de trabajos del período · Cualquier diferencia, avisar antes del pago" : "Bandas no incluidas · Urgencias con cargo adicional"}</p>
   <p>Para consultas: +569 91315887 · Villarrica, Araucanía</p>
 </div>
 </div>
@@ -2622,8 +2631,117 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
             setTimeout(() => { win.print(); }, 800);
           };
 
+          const diaHoy = new Date().getDate();
+          const finDeMes = diaHoy >= 28;
+
+          const cargarTrabajosCobro = () => {
+            const estados = estadoCobro === "TODOS" ? ["FACTURADO","FACTURAR","NO FACTURADO","PENDIENTE","EN PROCESO"] : [estadoCobro];
+            const lista = trabajos.filter(t => t.mes === mesCobro && t.clinica === clinicaCobro && estados.includes(t.estado_pago));
+            setLineasCobro(lista.map(t => ({
+              descripcion: t.tipo || "",
+              paciente: (t.paciente && t.paciente !== "-") ? t.paciente : "",
+              area: t.area || "",
+              cantidad: Number(t.cantidad) || 1,
+              valor: Number(t.valor) || 0,
+              ot: t.nro_ot || ""
+            })));
+          };
+
+          const totalCobro = lineasCobro.reduce((s,l)=> s + Number(l.valor||0) * Number(l.cantidad||1), 0);
+
+          const generarPDFCobro = () => {
+            if (lineasCobro.length === 0) { window.alert("No hay líneas que cobrar."); return; }
+            const clinObj = clinicas.find(x=>x.nombre===clinicaCobro);
+            generarPDF({
+              clinica: clinicaCobro,
+              doctor: (clinObj?.doctores||[clinObj?.doctor]).filter(Boolean).join(", "),
+              periodo: mesLabel(mesCobro),
+              fecha: new Date().toLocaleDateString("es-CL"),
+              observaciones: notaCobro,
+              items: lineasCobro.map(l=>({
+                nombre: l.descripcion + (l.paciente ? " — " + l.paciente : "") + (l.ot ? " (" + l.ot + ")" : ""),
+                area: l.area || "",
+                cantidad: Number(l.cantidad)||1,
+                precio: Number(l.valor)||0
+              }))
+            }, "cobro");
+          };
+
+          if (modoCobro) return (
+            <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"8px" }}>
+                <div>
+                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340" }}>💰 Cobro mensual</p>
+                  <p style={{ fontSize:"12px", color:"#64748b" }}>Arma el detalle por clínica y genera el PDF</p>
+                </div>
+                <button className="btng" onClick={()=>setModoCobro(false)}>← Volver a cotizaciones</button>
+              </div>
+
+              <div className="card" style={{ padding:"16px" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px", marginBottom:"12px" }}>
+                  <div><label className="lbl">Mes</label>
+                    <select className="inp" value={mesCobro} onChange={e=>setMesCobro(e.target.value)}>{MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
+                  <div><label className="lbl">Clínica</label>
+                    <select className="inp" value={clinicaCobro} onChange={e=>setClinicaCobro(e.target.value)}>
+                      <option value="">Seleccionar...</option>
+                      {clinicas.map(x=><option key={x.id} value={x.nombre}>{x.nombre}</option>)}
+                    </select></div>
+                  <div><label className="lbl">Incluir estado</label>
+                    <select className="inp" value={estadoCobro} onChange={e=>setEstadoCobro(e.target.value)}>
+                      <option value="FACTURADO">FACTURADO</option>
+                      <option value="FACTURAR">FACTURAR</option>
+                      <option value="NO FACTURADO">NO FACTURADO</option>
+                      <option value="TODOS">Todos menos pagados</option>
+                    </select></div>
+                </div>
+                <button className="btn1" disabled={!clinicaCobro} onClick={cargarTrabajosCobro}>Cargar trabajos</button>
+              </div>
+
+              {lineasCobro.length > 0 && (
+                <div className="card" style={{ padding:"16px" }}>
+                  <p style={{ fontSize:"12px", fontWeight:700, color:"#0c2340", marginBottom:"10px" }}>Detalle ({lineasCobro.length} línea{lineasCobro.length!==1?"s":""}) — puedes editar todo antes de generar</p>
+                  {lineasCobro.map((l,i)=>(
+                    <div key={i} style={{ display:"grid", gridTemplateColumns:"2fr 1.4fr 60px 110px 34px", gap:"6px", marginBottom:"6px", alignItems:"center" }}>
+                      <input className="inp" style={{ fontSize:"12px", padding:"5px 8px" }} placeholder="Descripción" value={l.descripcion}
+                        onChange={e=>setLineasCobro(v=>v.map((x,j)=>j===i?{...x,descripcion:e.target.value}:x))}/>
+                      <input className="inp" style={{ fontSize:"12px", padding:"5px 8px" }} placeholder="Paciente" value={l.paciente}
+                        onChange={e=>setLineasCobro(v=>v.map((x,j)=>j===i?{...x,paciente:e.target.value}:x))}/>
+                      <input type="number" className="inp" style={{ fontSize:"12px", padding:"5px 8px" }} value={l.cantidad}
+                        onChange={e=>setLineasCobro(v=>v.map((x,j)=>j===i?{...x,cantidad:e.target.value}:x))}/>
+                      <input type="number" className="inp" style={{ fontSize:"12px", padding:"5px 8px" }} value={l.valor}
+                        onChange={e=>setLineasCobro(v=>v.map((x,j)=>j===i?{...x,valor:e.target.value}:x))}/>
+                      <button className="bsm" style={{ color:"#f87171" }} onClick={()=>setLineasCobro(v=>v.filter((x,j)=>j!==i))}>✕</button>
+                    </div>
+                  ))}
+                  <button className="bsm" style={{ fontSize:"11px", marginTop:"4px" }}
+                    onClick={()=>setLineasCobro(v=>[...v,{descripcion:"",paciente:"",area:"",cantidad:1,valor:0,ot:""}])}>+ Agregar línea</button>
+
+                  <div style={{ marginTop:"12px" }}>
+                    <label className="lbl">Nota para la clínica (opcional)</label>
+                    <textarea className="inp" rows={2} value={notaCobro} onChange={e=>setNotaCobro(e.target.value)}/>
+                  </div>
+
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"14px", paddingTop:"12px", borderTop:"2px solid #0ea5e9" }}>
+                    <span style={{ fontSize:"14px", fontWeight:700, color:"#0c2340" }}>TOTAL A COBRAR</span>
+                    <span style={{ fontSize:"20px", fontWeight:800, color:"#0ea5e9" }}>{fmtCLP(totalCobro)}</span>
+                  </div>
+                  <button className="btn1" style={{ width:"100%", marginTop:"12px" }} onClick={generarPDFCobro}>📄 Generar PDF del cobro</button>
+                </div>
+              )}
+            </div>
+          );
+
           return (
             <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+              {finDeMes && (
+                <div className="card" style={{ padding:"12px 16px", background:"#fffbeb", borderColor:"#fcd34d", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"8px" }}>
+                  <span style={{ fontSize:"12px", color:"#92400e", fontWeight:700 }}>📅 Fin de mes — toca generar los cobros de cada clínica</span>
+                  <button className="btn1" onClick={()=>setModoCobro(true)}>Ir al cobro mensual</button>
+                </div>
+              )}
+              <div style={{ display:"flex", justifyContent:"flex-end" }}>
+                <button className="btng" onClick={()=>setModoCobro(true)}>💰 Cobro mensual</button>
+              </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
                   <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340" }}>📄 Cotizador</p>
