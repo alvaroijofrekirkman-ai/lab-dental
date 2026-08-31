@@ -667,7 +667,6 @@ export default function App() {
 
   const gastosFiltrados = useMemo(() => gastos.filter(g => g.mes === filtroMes), [gastos, filtroMes]);
   const invFiltrado = useMemo(() => inventario.filter(i => filtroInvCat === "Todas" || i.categoria === filtroInvCat), [inventario, filtroInvCat]);
-  const stockBajo = useMemo(() => inventario.filter(i => i.cantidad <= i.cantidad_minima), [inventario]);
 
   const toggleEntregaT = (id) => {
     const next = trabajos.map(t => {
@@ -1014,7 +1013,6 @@ export default function App() {
               localStorage.setItem("lab_accesos", JSON.stringify(accesos));
               setLogueado(false);
             }}>🔓 {usuarioActual} · Salir</p>
-            {stockBajo.length > 0 && <p style={{ fontSize:"11px", color:"#f59e0b", fontWeight:700 }}>⚠ {stockBajo.length} stock bajo</p>}
           </div>
         </div>
       </div>
@@ -1060,7 +1058,7 @@ export default function App() {
 
       {/* TABS */}
       <div style={{ borderBottom:"1px solid #bae6fd", display:"flex", overflowX:"auto", background:"#f0f9ff" }} className="scrollbar-hide">
-        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["inventario","📦 Inventario"],["clinicas","🏥 Clínicas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"],["accesos","🔐 Accesos"]].map(([k,l]) => (
+        {[["dashboard","📊 Resumen"],["trabajos","🔧 Trabajos"],["gastos","💸 Gastos"],["clinicas","🏥 Clínicas"],["calendario","📅 Calendario"],["metas","🎯 Metas"],["deudas","💰 Deudas"],["arancel","📋 Arancel"],["convenio","🤝 Convenio"],["cotizaciones","📄 Cotizador"],["accesos","🔐 Accesos"]].map(([k,l]) => (
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1171,18 +1169,6 @@ export default function App() {
               <div className="card" style={{ padding:"16px" }}><p className="lbl">Cobrado/Facturado</p><p style={{ fontSize:"15px", fontWeight:700, color:"#4ade80" }}>{fmt(mesActual.pagado)}</p></div>
               <div className="card" style={{ padding:"16px" }}><p className="lbl">Pendiente de cobro</p><p style={{ fontSize:"15px", fontWeight:700, color:"#f59e0b" }}>{fmt(mesActual.pendiente)}</p></div>
             </div>
-
-            {stockBajo.length > 0 && (
-              <div className="card" style={{ padding:"16px", borderColor:"#92400e" }}>
-                <p className="tf lbl" style={{ color:"#f59e0b", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"12px" }}>⚠ Stock bajo o agotado</p>
-                {stockBajo.slice(0,4).map(i => (
-                  <div key={i.id} style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", padding:"3px 0" }}>
-                    <span style={{ color:"#0c2340" }}>{i.descripcion}</span>
-                    <span style={{ color: i.cantidad===0?"#f87171":"#f59e0b", fontWeight:700 }}>{i.cantidad} {i.medida}</span>
-                  </div>
-                ))}
-              </div>
-            )}
 
             <div className="card" style={{ padding:"16px" }}>
               <p className="tf lbl" style={{ fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", marginBottom:"12px" }}>Top clínicas · {mesLabel(filtroMes)}</p>
@@ -1672,75 +1658,6 @@ export default function App() {
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
                     <button className="btng" onClick={()=>{setShowFormG(false);setEditandoG(null);}}>Cancelar</button>
                     <button className="btn1" onClick={saveG}>Guardar</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ════ INVENTARIO ════ */}
-        {tab === "inventario" && (
-          <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"8px" }}>
-              <select className="inp" style={{ width:"180px" }} value={filtroInvCat} onChange={e=>setFiltroInvCat(e.target.value)}>
-                <option value="Todas">Todas las categorías</option>
-                {CATS_INV.map(c=><option key={c}>{c}</option>)}
-              </select>
-              <button className="btn1" onClick={()=>{setFormI(emptyI);setEditandoI(null);setShowFormI(true);}}>+ Ítem</button>
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
-              <div className="card" style={{ padding:"12px", textAlign:"center" }}><p className="lbl">Ítems</p><p style={{ fontWeight:700, fontSize:"18px", color:"#0c2340" }}>{invFiltrado.length}</p></div>
-              <div className="card" style={{ padding:"12px", textAlign:"center" }}><p className="lbl">Stock OK</p><p style={{ fontWeight:700, fontSize:"18px", color:"#4ade80" }}>{invFiltrado.filter(i=>i.cantidad>i.cantidad_minima).length}</p></div>
-              <div className="card" style={{ padding:"12px", textAlign:"center" }}><p className="lbl">Stock bajo</p><p style={{ fontWeight:700, fontSize:"18px", color:"#f59e0b" }}>{invFiltrado.filter(i=>i.cantidad<=i.cantidad_minima).length}</p></div>
-            </div>
-            {invFiltrado.map(i=>{
-              const bajo=i.cantidad<=i.cantidad_minima, agotado=i.cantidad===0;
-              return (
-                <div key={i.id} className="card" style={{ padding:"16px", borderColor: agotado?"#7f1d1d":bajo?"#78350f":"#3f3f46" }}>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"4px" }}>
-                        <span style={{ fontSize:"11px", background:"#f8fcff", color:"#64748b", padding:"2px 8px", borderRadius:"4px" }}>{i.categoria}</span>
-                        {agotado && <span className="pill pill-nofact">AGOTADO</span>}
-                        {!agotado && bajo && <span className="pill pill-proc">STOCK BAJO</span>}
-                      </div>
-                      <p style={{ fontWeight:700, color:"#0c2340", fontSize:"14px" }}>{i.descripcion}</p>
-                      <p style={{ fontSize:"11px", color:"#64748b" }}>Mín: {i.cantidad_minima} {i.medida}</p>
-                    </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                        <button className="bsm" style={{ width:"32px", height:"32px", fontSize:"18px" }} onClick={()=>ajustar(i.id,-1)}>−</button>
-                        <div style={{ textAlign:"center", width:"52px" }}>
-                          <p style={{ fontSize:"22px", fontWeight:700, color: agotado?"#f87171":bajo?"#f59e0b":"#4ade80" }}>{i.cantidad}</p>
-                          <p style={{ fontSize:"10px", color:"#64748b" }}>{i.medida}</p>
-                        </div>
-                        <button className="bsm" style={{ width:"32px", height:"32px", fontSize:"18px" }} onClick={()=>ajustar(i.id,1)}>+</button>
-                      </div>
-                      <div style={{ display:"flex", gap:"4px" }}>
-                        <button className="bsm" onClick={()=>editI(i)}>✏️</button>
-                        <button className="bsm" style={{ color:"#f87171" }} onClick={()=>delI(i.id)}>🗑</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {showFormI && (
-              <div className="overlay">
-                <div className="modal">
-                  <p className="tf" style={{ fontSize:"16px", fontWeight:700, color:"#0c2340", marginBottom:"16px" }}>{editandoI?"Editar Ítem":"Nuevo Ítem"}</p>
-                  <div style={{ marginBottom:"12px" }}><label className="lbl">Categoría</label><select className="inp" value={formI.categoria} onChange={e=>setFormI(f=>({...f,categoria:e.target.value}))}>{CATS_INV.map(c=><option key={c}>{c}</option>)}</select></div>
-                  <div style={{ marginBottom:"12px" }}><label className="lbl">Descripción</label><input className="inp" value={formI.descripcion} onChange={e=>setFormI(f=>({...f,descripcion:e.target.value}))}/></div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"16px" }}>
-                    <div><label className="lbl">Cantidad</label><input type="number" className="inp" value={formI.cantidad} onChange={e=>setFormI(f=>({...f,cantidad:Number(e.target.value)}))}/></div>
-                    <div><label className="lbl">Stock mín.</label><input type="number" className="inp" value={formI.cantidad_minima} onChange={e=>setFormI(f=>({...f,cantidad_minima:Number(e.target.value)}))}/></div>
-                    <div><label className="lbl">Medida</label><input className="inp" value={formI.medida} onChange={e=>setFormI(f=>({...f,medida:e.target.value}))}/></div>
-                  </div>
-                  <div style={{ marginBottom:"16px" }}><label className="lbl">Observaciones</label><textarea className="inp" rows={2} value={formI.observaciones} onChange={e=>setFormI(f=>({...f,observaciones:e.target.value}))}/></div>
-                  <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
-                    <button className="btng" onClick={()=>{setShowFormI(false);setEditandoI(null);}}>Cancelar</button>
-                    <button className="btn1" onClick={saveI}>Guardar</button>
                   </div>
                 </div>
               </div>
