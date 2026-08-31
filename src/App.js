@@ -701,11 +701,29 @@ export default function App() {
     const nextId = Math.max(0, ...trabajos.map(x => x.id)) + 1;
     const nextOt = editandoT !== null ? formT.nro_ot : `OT-${String(nextId).padStart(3,"0")}`;
     let next = editandoT !== null ? trabajos.map(t => t.id === editandoT ? { ...formT, id: editandoT } : t) : [...trabajos, { ...formT, id: nextId, nro_ot: nextOt }];
-    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
+    // Cuando un trabajo pasa a PAGADO se suma al saldo; si deja de estarlo, se resta
+    const anterior = editandoT !== null ? trabajos.find(t => t.id === editandoT) : null;
+    const eraPagado = anterior ? anterior.estado_pago === "PAGADO" : false;
+    const esPagado = formT.estado_pago === "PAGADO";
+    let nuevoSaldo = capitalBase;
+    if (!eraPagado && esPagado) nuevoSaldo += Number(formT.valor || 0);
+    else if (eraPagado && !esPagado) nuevoSaldo -= Number(anterior.valor || 0);
+    else if (eraPagado && esPagado) nuevoSaldo += Number(formT.valor || 0) - Number(anterior.valor || 0);
+    setTrabajos(next);
+    if (nuevoSaldo !== capitalBase) { setCapitalBase(nuevoSaldo); setCapitalInput(String(nuevoSaldo)); }
+    guardarTodo(next, clinicas, gastos, inventario, nuevoSaldo, facturas, eventos, metas, deudas, actividad);
     setShowFormT(false); setEditandoT(null); setFormT(emptyT);
   };
   const editT = (t) => { setFormT({ ...t }); setEditandoT(t.id); setShowFormT(true); };
-  const delT = (id) => { if (!window.confirm("¿Eliminar?")) return; const next = trabajos.filter(t => t.id !== id); setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad); };
+  const delT = (id) => {
+    if (!window.confirm("¿Eliminar?")) return;
+    const borrado = trabajos.find(t => t.id === id);
+    const next = trabajos.filter(t => t.id !== id);
+    const nuevoSaldo = borrado?.estado_pago === "PAGADO" ? capitalBase - Number(borrado.valor || 0) : capitalBase;
+    setTrabajos(next);
+    if (nuevoSaldo !== capitalBase) { setCapitalBase(nuevoSaldo); setCapitalInput(String(nuevoSaldo)); }
+    guardarTodo(next, clinicas, gastos, inventario, nuevoSaldo, facturas, eventos, metas, deudas, actividad);
+  };
 
   const saveC = () => {
     let next = editandoC !== null
@@ -727,7 +745,11 @@ export default function App() {
     const vt = formG.valor_total || (Number(formG.cantidad) * Number(formG.valor_unit));
     const g = { ...formG, valor_total: vt };
     let next = editandoG !== null ? gastos.map(x => x.id === editandoG ? { ...g, id: editandoG } : x) : [...gastos, { ...g, id: Math.max(0, ...gastos.map(x => x.id)) + 1 }];
-    setGastos(next); guardarTodo(trabajos, clinicas, next, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
+    // El gasto descuenta del saldo (al editar, solo la diferencia)
+    const montoAnterior = editandoG !== null ? Number(gastos.find(x => x.id === editandoG)?.valor_total || 0) : 0;
+    const nuevoSaldo = capitalBase - (Number(vt) - montoAnterior);
+    setGastos(next); setCapitalBase(nuevoSaldo); setCapitalInput(String(nuevoSaldo));
+    guardarTodo(trabajos, clinicas, next, inventario, nuevoSaldo, facturas, eventos, metas, deudas, actividad);
     setShowFormG(false); setEditandoG(null); setFormG(emptyG);
   };
   const editG = (g) => { setFormG({ ...g }); setEditandoG(g.id); setShowFormG(true); };
@@ -1082,6 +1104,7 @@ export default function App() {
                   <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.7)", fontWeight:700, textTransform:"uppercase", letterSpacing:"2px", marginBottom:"4px" }}>🏦 Saldo Cuenta Corriente</p>
                   <p style={{ fontSize:"26px", fontWeight:800, color:"#fff" }}>{fmt(capitalBase)}</p>
                   <p style={{ fontSize:"11px", color:"rgba(255,255,255,0.7)" }}>Scotiabank N° 993705659</p>
+                  <p style={{ fontSize:"10px", color:"rgba(255,255,255,0.55)", marginTop:"3px" }}>Baja con cada gasto · sube cuando un trabajo pasa a PAGADO</p>
                 </div>
                 <button onClick={()=>{
                   const nuevo = prompt("Actualizar saldo cuenta corriente ($):", capitalBase);
