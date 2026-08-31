@@ -158,7 +158,7 @@ const PILL_CLASS_TRABAJO = {
   "ENTREGADO": "pill-entregado-t",
 };
 
-const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "PENDIENTE", estado_trabajo: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "", nro_ot: "" };
+const emptyT = { mes: "2026-06", localidad: "Villarrica", area: "Ortodoncia", clinica: "", doctor: "", paciente: "", tipo: "", cantidad: 1, valor: "", valor_base: "", extra: "", descuento: "", observaciones: "", estado_pago: "PENDIENTE", estado_trabajo: "EN PROCESO", nro_factura: "", fecha_ingreso: "", fecha_entrega: "", nro_ot: "", etapas: [] };
 const emptyG = { mes: "2026-06", tipo_gasto: "Variable", categoria: "Insumos", descripcion: "", medida: "UN", cantidad: 1, valor_unit: "", valor_total: "", proveedor: "", observaciones: "", fecha: "" };
 const emptyI = { categoria: "Ortodoncia", descripcion: "", medida: "UN", cantidad: 0, cantidad_minima: 1, observaciones: "" };
 
@@ -215,6 +215,43 @@ const ARANCEL_PLANO = [
   { nombre: "Carillas E.MAX", precio: 95000, area: "Fija" },
   { nombre: "Incrustación E.MAX", precio: 94000, area: "Fija" },
 ];
+
+
+// ── PLANTILLAS DE ETAPAS POR TIPO DE TRABAJO ─────────────────────
+const norm = (s) => (s||"").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+
+const ET_REMOVIBLE = ["Cubeta individual","Placa base con rodetes","Montaje y prueba de dientes","Terminacion y pulido"];
+const ET_METALICA  = ["Modelos y diseno","Estructura metalica","Montaje y prueba de dientes","Terminacion y pulido"];
+const ET_FIJA      = ["Modelos y troquelado","Diseno y fresado","Prueba de estructura","Ceramica y glaseado"];
+const ET_ORTO      = ["Modelos","Adaptacion de bandas","Soldadura y armado","Acrilico y pulido"];
+const ET_PLANO     = ["Modelo","Termoformado","Recorte y pulido"];
+
+const PLANTILLAS_ETAPAS = [
+  { claves:["ACETATO"], etapas: ET_PLANO },
+  { claves:["BASE METALICA","ESQUELETICO"], etapas: ET_METALICA },
+  { claves:["REBASADO"], etapas:["Recepcion y limpieza","Rebasado","Pulido"] },
+  { claves:["REPARACION"], etapas:["Recepcion","Reparacion","Pulido"] },
+  { claves:["PROTESIS PARCIAL","PROTESIS TOTAL","PROTESIS INMEDIATA","PROTESIS FLEXIBLE","PROTESIS COSMETICA","RODETES","DIENTES PROVISORIOS"], etapas: ET_REMOVIBLE },
+  { claves:["ZIRCONIO","E.MAX","EMAX","DISILICATO","CORONA","CARILLA","INCRUSTACION","NUCLEO","PFU","PROTESIS FIJA","CERAMICA"], etapas: ET_FIJA },
+  { claves:["HYRAX","MCNAMARA","MC.NAMARA","HASS","DISYUNTOR","QUAD HELIX","NANCE","TRANSPALATINA","BTP","TPA","MANTENEDOR","SCHWARTZ","EXPANSION","HAWLEY","BEGG","MAURICIO","BIONATOR","MONOBLOCK","BARRA LINGUAL"], etapas: ET_ORTO },
+  { claves:["CONTENCION"], etapas:["Modelos","Armado","Acrilico y pulido"] },
+  { claves:["PLANO","ESTAMPADO","CUBETILLA","PROTECTOR BUCAL"], etapas: ET_PLANO },
+  { claves:["IMPRESION 3D"], etapas:["Diseno","Impresion","Post-curado y pulido"] },
+];
+
+const ETAPAS_POR_AREA = { "Ortodoncia": ET_ORTO, "Removible": ET_REMOVIBLE, "Fija": ET_FIJA, "Plano": ET_PLANO };
+
+// Devuelve las etapas sugeridas para un tipo de trabajo (o segun el area si no calza ninguna)
+function etapasSugeridas(tipo, area) {
+  const t = norm(tipo);
+  if (t) {
+    for (const p of PLANTILLAS_ETAPAS) {
+      if (p.claves.some(k => t.includes(k))) return p.etapas.map(n => ({ nombre:n, hecha:false, fecha:"" }));
+    }
+  }
+  const porArea = ETAPAS_POR_AREA[area];
+  return porArea ? porArea.map(n => ({ nombre:n, hecha:false, fecha:"" })) : [];
+}
 
 // ── COMPONENTE CALENDARIO ─────────────────────────────────────────
 function Calendario({ trabajos, setTrabajos, eventos, setEventos, guardarTodo, clinicas, gastos, inventario, capitalBase, facturas, metas }) {
@@ -633,6 +670,21 @@ export default function App() {
       const nuevoEstadoTrabajo = estados[(idx + 1) % estados.length];
       const entregado = nuevoEstadoTrabajo === "ENTREGADO";
       return { ...t, estado_trabajo: nuevoEstadoTrabajo, entregado };
+    });
+    setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
+  };
+
+  // Marca / desmarca una etapa de un trabajo
+  const toggleEtapa = (idTrabajo, idx) => {
+    const hoy = new Date().toISOString().slice(0,10);
+    const next = trabajos.map(t => {
+      if (t.id !== idTrabajo) return t;
+      const etapas = (t.etapas||[]).map((e,i) => i !== idx ? e : { ...e, hecha: !e.hecha, fecha: !e.hecha ? hoy : "" });
+      const todasListas = etapas.length > 0 && etapas.every(e => e.hecha);
+      let estado_trabajo = t.estado_trabajo || "EN PROCESO";
+      if (todasListas && estado_trabajo === "EN PROCESO") estado_trabajo = "LISTO";
+      if (!todasListas && estado_trabajo === "LISTO") estado_trabajo = "EN PROCESO";
+      return { ...t, etapas, estado_trabajo };
     });
     setTrabajos(next); guardarTodo(next, clinicas, gastos, inventario, capitalBase, facturas, eventos, metas, deudas, actividad);
   };
@@ -1181,6 +1233,35 @@ export default function App() {
                       {t.fecha_ingreso && <span style={{ fontSize:"11px", color:"#bae6fd" }}>Ing: {t.fecha_ingreso}</span>}
                       {t.fecha_entrega && <span style={{ fontSize:"11px", color:"#bae6fd" }}>Ent: {t.fecha_entrega}</span>}
                     </div>
+                    {(t.etapas||[]).length > 0 && (() => {
+                      const hechas = t.etapas.filter(e=>e.hecha).length;
+                      const total = t.etapas.length;
+                      const actual = t.etapas.find(e=>!e.hecha);
+                      return (
+                        <div style={{ marginTop:"10px", paddingTop:"10px", borderTop:"1px solid #e0f2fe" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px" }}>
+                            <span style={{ fontSize:"11px", fontWeight:700, color: hechas===total ? "#16a34a" : "#0369a1" }}>
+                              {hechas===total ? "\u2713 Todas las etapas listas" : "Etapa " + (hechas+1) + " de " + total + ": " + actual.nombre}
+                            </span>
+                            <div style={{ flex:1, height:"5px", background:"#e0f2fe", borderRadius:"3px", overflow:"hidden", maxWidth:"140px" }}>
+                              <div style={{ width:(hechas/total*100)+"%", height:"100%", background: hechas===total ? "#16a34a" : "#0ea5e9" }}/>
+                            </div>
+                          </div>
+                          <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
+                            {t.etapas.map((e,i)=>(
+                              <button key={i} onClick={()=>toggleEtapa(t.id,i)} title={e.fecha ? "Terminada el "+e.fecha : "Marcar como terminada"}
+                                style={{ fontSize:"10px", padding:"3px 9px", borderRadius:"12px", cursor:"pointer",
+                                  border: e.hecha ? "1px solid #16a34a" : "1px solid #cbd5e1",
+                                  background: e.hecha ? "#dcfce7" : "#ffffff",
+                                  color: e.hecha ? "#15803d" : "#64748b",
+                                  fontWeight: e.hecha ? 700 : 400 }}>
+                                {e.hecha ? "\u2713 " : "\u25CB "}{e.nombre}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"8px" }}>
                     <p style={{ color:"#0ea5e9", fontWeight:700, fontSize:"16px" }}>{fmt(t.valor)}</p>
@@ -1217,9 +1298,20 @@ export default function App() {
                       {clinicas.map(c=><option key={c.id} value={c.nombre}/>)}
                     </datalist>
                   </div>
-                  {[["Paciente","paciente"],["Tipo de trabajo","tipo"]].map(([lb,k])=>(
-                    <div key={k} style={{ marginBottom:"12px" }}><label className="lbl">{lb}</label><input className="inp" value={formT[k]} onChange={e=>setFormT(f=>({...f,[k]:e.target.value}))}/></div>
-                  ))}
+                  <div style={{ marginBottom:"12px" }}><label className="lbl">Paciente</label><input className="inp" value={formT.paciente} onChange={e=>setFormT(f=>({...f,paciente:e.target.value}))}/></div>
+                  <div style={{ marginBottom:"12px" }}>
+                    <label className="lbl">Tipo de trabajo</label>
+                    <input className="inp" list="lista-tipos" value={formT.tipo} onChange={e=>{
+                      const nuevoTipo = e.target.value;
+                      setFormT(f=>{
+                        const sinTocar = !f.etapas || f.etapas.length===0 || f.etapas.every(x=>!x.hecha);
+                        return { ...f, tipo:nuevoTipo, etapas: sinTocar ? etapasSugeridas(nuevoTipo, f.area) : f.etapas };
+                      });
+                    }} placeholder="Escribe o selecciona del arancel..."/>
+                    <datalist id="lista-tipos">
+                      {ARANCEL_PLANO.map(a=><option key={a.nombre} value={a.nombre}/>)}
+                    </datalist>
+                  </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
                     <div>
                       <label className="lbl">Doctor/a</label>
@@ -1255,6 +1347,22 @@ export default function App() {
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
                     <div><label className="lbl">Estado de pago 💳</label><select className="inp" value={formT.estado_pago} onChange={e=>setFormT(f=>({...f,estado_pago:e.target.value}))}>{ESTADOS_PAGO.map(e=><option key={e}>{e}</option>)}</select></div>
                     <div><label className="lbl">Estado del trabajo 🔧</label><select className="inp" value={formT.estado_trabajo||"EN PROCESO"} onChange={e=>setFormT(f=>({...f,estado_trabajo:e.target.value}))}>{ESTADOS_TRABAJO.map(e=><option key={e}>{e}</option>)}</select></div>
+                  </div>
+                  <div style={{ marginBottom:"16px", padding:"12px", background:"#f8fcff", borderRadius:"8px", border:"1px solid #e0f2fe" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" }}>
+                      <label className="lbl" style={{ margin:0 }}>Etapas del trabajo</label>
+                      <button className="bsm" style={{ fontSize:"11px" }} onClick={()=>setFormT(f=>({...f, etapas: etapasSugeridas(f.tipo, f.area)}))}>Cargar sugeridas</button>
+                    </div>
+                    {(!formT.etapas || formT.etapas.length===0) && <p style={{ fontSize:"11px", color:"#94a3b8", margin:"0 0 8px" }}>Sin etapas. Este trabajo se entrega en una sola pasada.</p>}
+                    {(formT.etapas||[]).map((e,i)=>(
+                      <div key={i} style={{ display:"flex", gap:"6px", alignItems:"center", marginBottom:"6px" }}>
+                        <input type="checkbox" checked={!!e.hecha} onChange={()=>setFormT(f=>({...f, etapas: f.etapas.map((x,j)=> j===i ? {...x, hecha:!x.hecha} : x)}))} style={{ cursor:"pointer" }}/>
+                        <input className="inp" style={{ flex:1, fontSize:"12px", padding:"5px 8px" }} value={e.nombre}
+                          onChange={ev=>setFormT(f=>({...f, etapas: f.etapas.map((x,j)=> j===i ? {...x, nombre:ev.target.value} : x)}))}/>
+                        <button className="bsm" style={{ color:"#f87171" }} onClick={()=>setFormT(f=>({...f, etapas: f.etapas.filter((x,j)=>j!==i)}))}>\u2715</button>
+                      </div>
+                    ))}
+                    <button className="bsm" style={{ fontSize:"11px", marginTop:"4px" }} onClick={()=>setFormT(f=>({...f, etapas:[...(f.etapas||[]), { nombre:"Nueva etapa", hecha:false, fecha:"" }]}))}>+ Agregar etapa</button>
                   </div>
                   <div style={{ marginBottom:"16px" }}><label className="lbl">Observaciones</label><textarea className="inp" rows={2} value={formT.observaciones} onChange={e=>setFormT(f=>({...f,observaciones:e.target.value}))}/></div>
                   <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
