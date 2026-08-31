@@ -519,6 +519,7 @@ export default function App() {
   const [estadoCobro, setEstadoCobro] = useState("FACTURADO");
   const [lineasCobro, setLineasCobro] = useState([]);
   const [notaCobro, setNotaCobro] = useState("");
+  const [buscoCobro, setBuscoCobro] = useState(false);
   const [ready, setReady] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
@@ -2557,7 +2558,13 @@ export default function App() {
   .total-row td { color:#fff !important; font-weight:700 !important; font-size:15px !important; padding:12px !important; }
   .obs { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:12px 16px; margin-top:80px; margin-bottom:24px; font-size:12px; color:#92400e; }
   .obs-label { font-weight:700; margin-bottom:4px; }
-  .footer { text-align:center; padding-top:20px; border-top:1px solid #e2e8f0; }
+  .transfer { margin-top:24px; background:#f0f9ff; border:1px solid #7dd3fc; border-radius:8px; padding:16px; }
+  .transfer-title { font-size:11px; font-weight:700; color:#0369a1; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+  .transfer-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; }
+  .transfer-row { font-size:12px; color:#1e293b; }
+  .transfer-row span { color:#64748b; display:inline-block; min-width:82px; }
+  .transfer-row b { color:#0c2340; }
+  .footer { text-align:center; padding-top:20px; border-top:1px solid #e2e8f0; margin-top:20px; }
   .footer p { font-size:11px; color:#94a3b8; margin-bottom:3px; }
   .footer .gracias { font-size:13px; font-weight:700; color:#0ea5e9; margin-bottom:6px; }
 
@@ -2612,6 +2619,20 @@ export default function App() {
 
 ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observaciones:</div>${cot.observaciones}</div>` : ""}
 
+${esCobro ? `
+<div class="transfer">
+  <div class="transfer-title">🏦 Datos para transferencia</div>
+  <div class="transfer-grid">
+    <div class="transfer-row"><span>Titular:</span><b>DENTIS DENTAL SPA</b></div>
+    <div class="transfer-row"><span>RUT:</span><b>78.383.141-4</b></div>
+    <div class="transfer-row"><span>Banco:</span><b>Scotiabank</b></div>
+    <div class="transfer-row"><span>Tipo:</span><b>Cuenta Corriente</b></div>
+    <div class="transfer-row"><span>N° Cuenta:</span><b>993705659</b></div>
+    <div class="transfer-row"><span>Correo:</span><b>laboratoriodental@dentis-lab.cl</b></div>
+  </div>
+  <p style="font-size:11px;color:#64748b;margin-top:10px">Enviar el comprobante de transferencia al correo indicado.</p>
+</div>` : ""}
+
 <div class="footer">
   <p class="gracias">¡Gracias por confiar en Laboratorio Dental Dentis!</p>
   <p>${esCobro ? "Detalle de trabajos del período · Cualquier diferencia, avisar antes del pago" : "Bandas no incluidas · Urgencias con cargo adicional"}</p>
@@ -2645,6 +2666,7 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
               valor: Number(t.valor) || 0,
               ot: t.nro_ot || ""
             })));
+            setBuscoCobro(true);
           };
 
           const totalCobro = lineasCobro.reduce((s,l)=> s + Number(l.valor||0) * Number(l.cantidad||1), 0);
@@ -2680,14 +2702,14 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
               <div className="card" style={{ padding:"16px" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px", marginBottom:"12px" }}>
                   <div><label className="lbl">Mes</label>
-                    <select className="inp" value={mesCobro} onChange={e=>setMesCobro(e.target.value)}>{MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
+                    <select className="inp" value={mesCobro} onChange={e=>{setMesCobro(e.target.value); setBuscoCobro(false); setLineasCobro([]);}}>{MESES.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
                   <div><label className="lbl">Clínica</label>
-                    <select className="inp" value={clinicaCobro} onChange={e=>setClinicaCobro(e.target.value)}>
+                    <select className="inp" value={clinicaCobro} onChange={e=>{setClinicaCobro(e.target.value); setBuscoCobro(false); setLineasCobro([]);}}>
                       <option value="">Seleccionar...</option>
                       {clinicas.map(x=><option key={x.id} value={x.nombre}>{x.nombre}</option>)}
                     </select></div>
                   <div><label className="lbl">Incluir estado</label>
-                    <select className="inp" value={estadoCobro} onChange={e=>setEstadoCobro(e.target.value)}>
+                    <select className="inp" value={estadoCobro} onChange={e=>{setEstadoCobro(e.target.value); setBuscoCobro(false); setLineasCobro([]);}}>
                       <option value="FACTURADO">FACTURADO</option>
                       <option value="FACTURAR">FACTURAR</option>
                       <option value="NO FACTURADO">NO FACTURADO</option>
@@ -2696,6 +2718,23 @@ ${cot.observaciones ? `<div class="obs"><div class="obs-label">📋 Observacione
                 </div>
                 <button className="btn1" disabled={!clinicaCobro} onClick={cargarTrabajosCobro}>Cargar trabajos</button>
               </div>
+
+              {buscoCobro && lineasCobro.length === 0 && (() => {
+                const enElMes = trabajos.filter(t => t.mes === mesCobro && t.clinica === clinicaCobro);
+                const conteo = {};
+                enElMes.forEach(t => { conteo[t.estado_pago] = (conteo[t.estado_pago]||0) + 1; });
+                return (
+                  <div className="card" style={{ padding:"20px", textAlign:"center" }}>
+                    <p style={{ fontSize:"28px", marginBottom:"6px" }}>🔍</p>
+                    <p style={{ fontSize:"13px", color:"#0c2340", fontWeight:700 }}>No hay trabajos con ese filtro</p>
+                    {enElMes.length === 0
+                      ? <p style={{ fontSize:"12px", color:"#64748b", marginTop:"6px" }}>{clinicaCobro} no tiene trabajos registrados en {mesLabel(mesCobro)}.</p>
+                      : <p style={{ fontSize:"12px", color:"#64748b", marginTop:"6px" }}>
+                          {clinicaCobro} tiene {enElMes.length} trabajo{enElMes.length!==1?"s":""} en {mesLabel(mesCobro)}, pero con otro estado de pago: {Object.entries(conteo).map(([k,v])=>k+" ("+v+")").join(", ")}. Cambia "Incluir estado" y vuelve a cargar.
+                        </p>}
+                  </div>
+                );
+              })()}
 
               {lineasCobro.length > 0 && (
                 <div className="card" style={{ padding:"16px" }}>
